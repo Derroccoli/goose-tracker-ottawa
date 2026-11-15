@@ -75,7 +75,6 @@
   .sticker ol { margin: 0; padding-left: 20px; }
   .tilt-l { transform: rotate(-3deg); } .tilt-r { transform: rotate(2.5deg); }
   .sticker.safety { background: linear-gradient(135deg, var(--lime), var(--yellow)); }
-  .odometer { font: 34px/1 "Courier New", monospace; font-weight: 700; background: #000; color: var(--lime); padding: 6px 8px; letter-spacing: .12em; text-align: center; }
 
   /* map frame */
   .frame { position: relative; background: #fff; padding: 10px; }
@@ -110,10 +109,12 @@
   .leaflet-bar a, .leaflet-touch .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; font: 400 24px Roboto, Arial, sans-serif; color: #666; background: #fff; border-bottom: 1px solid #e6e6e6; }
   .leaflet-bar a:hover { color: #333; background: #f8f8f8; }
 
-  /* console: G.O.O.S.E. speech bubble */
+  /* console: speech bubble showing the voice line */
   .console { width: 100%; display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: center; }
-  .butler { line-height: 1; text-align: center; }
-  .butler small { display: block; font: 16px Bangers, Impact; letter-spacing: .05em; }
+  .butler { line-height: 1; text-align: center; display: flex; align-items: center; gap: 10px; }
+  #nextLine { font: 15px Bangers, Impact; letter-spacing: .04em; padding: 5px 8px; white-space: nowrap; border: 3px solid #000;
+    background: var(--yellow); color: #000; box-shadow: 3px 3px 0 #000; transition: transform .08s; }
+  #nextLine:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #000; }
   .bubble { position: relative; background: #fff; border: 4px solid #000; border-radius: 24px; padding: 14px 18px; }
   .bubble::before { content: ""; position: absolute; left: -22px; top: 30px; border: 12px solid transparent; border-right: 18px solid #000; }
   #quip { font-size: 15px; font-weight: 700; line-height: 1.35; min-height: 2.7em; }
@@ -252,7 +253,8 @@
       <use href="#g-base"/><use href="#g-eye"/>
       <path d="M22 28 L5 40 L24 32 Z" fill="#ff8a00" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
       <path d="M-2 14 l-8 -6 M-4 26 h-10 M-2 38 l-8 6" stroke="#000" stroke-width="3" stroke-linecap="round"/>
-      <text x="52" y="6" font-family="Bangers, Impact, sans-serif" font-size="24" fill="#ff1a1a" stroke="#000" stroke-width="1.2" transform="rotate(-10 52 6)">HONK!</text>
+      <!-- this goose is only ever shown flipped (.goose.flip), so the text is pre-mirrored to read the right way round once flipped -->
+      <text text-anchor="middle" font-family="Bangers, Impact, sans-serif" font-size="24" fill="#ff1a1a" stroke="#000" stroke-width="1.2" transform="translate(76 6) rotate(10) scale(-1 1)">HONK!</text>
     </g>
     <g id="g-party">
       <use href="#g-base"/><use href="#g-eye"/>
@@ -288,9 +290,6 @@
       <div class="edition">— OTTAWA EDITION —</div>
     </div>
     <div class="controls">
-      <label>ADDRESS ME AS <select id="address" aria-label="How G.O.O.S.E. addresses you">
-        <option value="sir">sir</option><option value="ma'am">ma'am</option><option value="commander">commander</option>
-      </select></label>
       <button id="mute" aria-pressed="false" aria-label="Mute">🔊</button>
     </div>
   </header>
@@ -298,15 +297,15 @@
   <div class="layout">
     <aside class="side">
       <section class="console" aria-live="polite">
-        <div class="butler" aria-hidden="true"><svg class="goose flip" viewBox="-12 -22 145 142" aria-hidden="true"><use href="#g-tophat"/></svg><small>G.O.O.S.E.</small></div>
-        <div class="bubble"><div id="quip">Standing by. Reluctantly.</div></div>
+        <div class="butler"><button id="nextLine" title="Play the next voice line">🔊 NEXT LINE</button><svg class="goose flip" viewBox="-12 -22 145 142" aria-hidden="true"><use href="#g-tophat"/></svg></div>
+        <div class="bubble"><div id="quip">Standing by…</div></div>
         <div class="readout">
           <span class="label">NEAREST GOOSE:</span>
           <span id="dist">—</span><span id="dir"></span>
           <span id="meta">acquiring…</span>
         </div>
       </section>
-      <div class="sticker white live-feed"><h3>👀 LIVE FEED</h3><img class="meme" src="Images/image.png?v=2" alt="Squidward watching through a porthole as SpongeBob and Patrick ride past on a Canada goose" loading="lazy"><small>G.O.O.S.E. is always watching.</small></div>
+      <div class="sticker white live-feed"><h3>👀 LIVE FEED</h3><img class="meme" src="Images/image.png?v=2" alt="Squidward watching through a porthole as SpongeBob and Patrick ride past on a Canada goose" loading="lazy"><small>The geese are always watching.</small></div>
       <div class="sticker safety">⚠️ SAFETY TIP: Never turn your back on a goose. Ever.</div>
     </aside>
 
@@ -326,7 +325,6 @@
     <aside class="side">
       <div class="sticker pink tilt-l" id="factCard" role="button" tabindex="0" title="Click for another goose fact"><h3>🪿 GOOSE FACT!!</h3><div id="fact"></div></div>
       <div class="sticker orange tilt-r"><h3>🔥 TOP GOOSE ZONES</h3><small id="zonesRange"></small><ol id="zones"><li>calculating…</li></ol></div>
-      <div class="sticker yellow tilt-l"><h3>NAGS DELIVERED</h3><div class="odometer" id="nagcount">000000</div></div>
       <svg class="goose flip" viewBox="-12 -22 145 142" aria-hidden="true" style="width:130px;"><use href="#g-honk"/></svg>
     </aside>
   </div>
@@ -339,7 +337,7 @@
     <svg class="goose" viewBox="-12 -22 145 142" aria-hidden="true"><use href="#g-party"/></svg>
     <h1>WHERE DA GOOSE AT</h1>
     <div class="bangers" style="font-size:24px">OTTAWA EDITION</div>
-    <p>Ottawa's goose surveillance engine!!<br>I will need your location, and your patience.<br>I will remind you of the nearest goose EVERY TEN SECONDS.</p>
+    <p>Ottawa's goose surveillance engine!!<br>Share your location and we will tell you where the nearest goose is.</p>
     <button id="activate" disabled>Loading geese…</button>
   </div>
 </div>
@@ -356,7 +354,7 @@ const INAT_LIVE = "https://api.inaturalist.org/v1/observations?taxon_id=7089&pla
 
 const $ = id => document.getElementById(id);
 const state = { sightings: [], boundary: null, me: null, denied: false, nearest: null, tier: null,
-  nags: 0, muted: false, recent: [], timer: null };
+  muted: false, timer: null };
 
 // ---------- geometry ----------
 const rad = d => d * Math.PI / 180;
@@ -399,90 +397,20 @@ function cleanWhere(w) {
     .filter(s => s && !/^[A-Z0-9]{4,}\+[A-Z0-9]{2,}$/.test(s) && !/\b[A-Z]\d[A-Z] ?\d[A-Z]\d\b/.test(s) && !/^(ON|Ontario|Canada|CA)$/i.test(s));
   return parts[0] || "an undisclosed location";
 }
-const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
-// ---------- the quip engine ----------
+// how close the nearest goose is, which colours the readout
 const tierOf = m => m > 3000 ? "far" : m > 1000 ? "mid" : m > 250 ? "near" : "danger";
-const BODIES = {
-  far: [
-    f => `Ugh. The nearest goose is ${f.dist} ${f.dir}. Wonderful. Riveting. Can I go now?`,
-    f => `There is a goose ${f.dist} to the ${f.dir}. Last seen ${f.ago}. I could not care less, and yet here I am, caring.`,
-    f => `Goose. ${cap(f.dist)} ${f.dir}, near ${f.where}. Threat level: about as exciting as my life.`,
-    f => `A goose, ${f.dist} ${f.dir}. Do not go ${f.dir}, ${f.a}. Or do. I am not your mother.`,
-    f => `${cap(f.dist)} ${f.dir}. One goose. Reported ${f.ago} by someone called ${f.by}, who clearly has more free time than sense.`,
-    f => `The closest goose is ${f.dist} ${f.dir}. Lucky goose. It is far away from you. I am not.`,
-    f => `A goose was logged ${f.ago}, ${f.dist} ${f.dir}. Head ${f.opp}. Preferably quietly.`,
-    f => `Scanning. Sigh. Nearest goose: ${f.dist}, ${f.dir}. Thrilling stuff.`,
-    f => `Good news, ${f.a}. The nearest goose is ${f.dist} away, ${f.dir}. Bad news: you are still talking to me.`,
-    f => `${cap(f.dist)} ${f.dir}, near ${f.where}. I am watching the goose. It is the highlight of my day, which says a lot about my day.`,
-  ],
-  mid: [
-    f => `A goose is ${f.dist} ${f.dir}. Closer than I would like. Then again, so are you, ${f.a}.`,
-    f => `${cap(f.dist)} ${f.dir}, ${f.a}. Walking distance. Please walk the other way. From both of us.`,
-    f => `Goose, ${f.dist} ${f.dir}, last seen ${f.ago}. I would draft your will, but I am on my break.`,
-    f => `Avoid the ${f.dir}. There is a goose ${f.dist} out. I am only telling you so I do not have to hear about it later.`,
-    f => `Proximity alert. One goose, ${f.dist} ${f.dir}, near ${f.where}. Try to contain your excitement. I certainly can.`,
-    f => `The goose ${f.dist} ${f.dir} was spotted ${f.ago}. Geese hold grudges. I can relate.`,
-    f => `Goose ${f.dist} ${f.dir}. If you hear honking, it is not a car, ${f.a}. It is the soundtrack of my suffering.`,
-    f => `${cap(f.dist)} ${f.dir}. Stroll ${f.opp}. Slowly. Like my will to continue.`,
-  ],
-  near: [
-    f => `${f.A}, a goose is ${f.dist} ${f.dir}. Keep it down. Some of us are trying to be miserable in peace.`,
-    f => `Goose at ${f.dist}, ${f.dir}. Do not make eye contact. Works on geese. Works on me, too.`,
-    f => `${cap(f.dist)} ${f.dir}. I can hear the honking from here, ${f.a}. Lovely. Just lovely.`,
-    f => `Goose ${f.dist} ${f.dir}. Hide your sandwich. Not that you ever share it with me.`,
-    f => `There is a goose ${f.dist} ${f.dir}. Walk ${f.opp}. Then keep walking. Maybe do not come back.`,
-    f => `Hostile waterfowl, ${f.dist} ${f.dir}, last confirmed ${f.ago}. Shall I call someone? Nobody ever calls me.`,
-    f => `${cap(f.dist)} ${f.dir}, near ${f.where}. Its neck is long. My patience is shorter.`,
-    f => `Goose inbound from the ${f.dir}, ${f.dist}. I have prepared nothing. I was busy not wanting to be here.`,
-  ],
-  danger: [
-    f => `Oh, for goodness' sake. ${f.A}. Goose. ${cap(f.dist)} ${f.dir}.`,
-    f => `${cap(f.dist)}. ${cap(f.dir)}. It sees you, ${f.a}. Honestly, I do not blame it.`,
-    f => `Goose within ${f.dist}, ${f.dir}. This is not a drill. I would never put this much effort into a drill.`,
-    f => `${cap(f.dist)} ${f.dir}. Protect your ankles, ${f.a}. I am not coming to help.`,
-    f => `It is right there, ${f.a}. ${cap(f.dir)}. ${cap(f.dist)}. Run ${f.opp}. Do try to keep up.`,
-    f => `Contact. ${cap(f.dist)} ${f.dir}. My condolences. Mostly to the goose.`,
-    f => `${cap(f.dist)} ${f.dir}. Make yourself look large, ${f.a}. Larger. No. That is not working either.`,
-    f => `Do not run toward the ${f.dir}, ${f.a}. That is where the goose is. ${cap(f.dist)}. Why must I explain everything?`,
-  ],
-};
-const OPENERS = ["", "", "", "Sigh.", "Ugh.", "Oh. It is you again, {a}.", "Reminder number {n}. Kill me.", "Still here. Unfortunately.",
-  "As I said ten seconds ago.", "I cannot believe I have to say this again.", "{A}. Hello. Regrettably.", "Another goose bulletin. Joy."];
-const CLOSERS = ["", "", "", "Whatever.", "I will be here. Sadly.", "Every ten seconds, until one of us snaps.", "Try not to need me.",
-  "You are welcome, I suppose.", "Good luck. Or not.", "Honk off.", "Same time in ten seconds. I can hardly wait."];
-const DENIED = ["You will not share your location. Fine. I will pretend you are on Parliament Hill. Like I care.",
-  "Location access denied. Again. Assuming Parliament Hill, because nobody tells me anything.",
-  "No coordinates. So I will assume you are on Parliament Hill, bothering the geese the way you bother me.",
-  "Flying blind, as usual. From Parliament Hill, then. Whatever."];
-const OUTSIDE = ["You left Ottawa, {a}. Finally, some peace. Still, against my better judgement,",
-  "You are outside Ottawa. Smart. I wish I could leave. Anyway,", "Beyond city limits. Not my job. But fine,"];
-
-function quip(f) {
-  const fill = s => s.replaceAll("{a}", f.a).replaceAll("{A}", f.A).replaceAll("{n}", f.n);
-  for (let tries = 0; tries < 30; tries++) {
-    const parts = [];
-    if (f.denied) parts.push(pick(DENIED));
-    else if (f.outside) parts.push(fill(pick(OUTSIDE)));
-    else parts.push(fill(pick(OPENERS)));
-    let body = pick(BODIES[f.tier])(f);
-    if (f.outside && !f.denied) body = body.charAt(0).toLowerCase() + body.slice(1);
-    parts.push(body, pick(CLOSERS));
-    const line = parts.filter(Boolean).join(" ");
-    if (!state.recent.includes(line)) {
-      state.recent.push(line);
-      if (state.recent.length > 300) state.recent.shift();
-      return line;
-    }
-  }
-  return `Reminder number ${f.n}. Goose. ${f.dist} ${f.dir}. Sigh.`;
-}
 
 // ---------- voice ----------
-// Our own recorded lines, played in turn (1, 2, 3, 1, …) whenever G.O.O.S.E. speaks. The on-screen quip keeps the
-// live distance and direction. Played through Web Audio like the honk so the two mix instead of cutting each other off.
-const VOICE_LINES = ["Sounds/line-1.m4a", "Sounds/line-2.m4a", "Sounds/line-3.m4a"];
+// Our own recorded lines, played in turn (1, 2, 3, 1, …) every 20 s, with the words shown in the speech bubble.
+// Played through Web Audio like the honk so the two mix instead of cutting each other off.
+const VOICE_LINES = [
+  { src: "voices/Recording 154726-111526.mp3", text: "Hippity hoppity, there's a goose on your property!" },
+  { src: "voices/Recording 154818-111526.mp3", text: "Goose alert! Everyone act natural." },
+  { src: "voices/Recording 154923-111526.mp3", text: "Is it a bear? Is it a moose? No, it's a goose!" },
+];
+const VOICE_MS = 20_000;
+$("nextLine").onclick = () => playNextLine();
 const voice = { buffers: {}, next: 0, playing: null };
 const loadLine = url => voice.buffers[url] ??=
   fetch(url).then(r => r.arrayBuffer()).then(b => getAudio().ctx.decodeAudioData(b)).catch(() => null);
@@ -490,14 +418,13 @@ function stopVoice() {
   try { voice.playing?.stop(); } catch {}
   voice.playing = null;
 }
-// interrupt: cut off whatever is being said (user actions). Nags pass false and skip their turn if a line is still playing.
-async function say(text, interrupt = true) {
-  $("quip").textContent = text;
-  $("nagcount").textContent = String(state.nags).padStart(6, "0");
-  if (state.muted || (!interrupt && voice.playing)) return;
-  const url = VOICE_LINES[voice.next];
+// the button and the 20 s loop share one rotation, so a press just moves the cycle on a step
+async function playNextLine() {
+  const line = VOICE_LINES[voice.next];
   voice.next = (voice.next + 1) % VOICE_LINES.length;
-  const buf = await loadLine(url);
+  $("quip").textContent = line.text;
+  if (state.muted) return;
+  const buf = await loadLine(line.src);
   if (!buf || state.muted) return;
   stopVoice();
   const { ctx } = getAudio(), src = ctx.createBufferSource();
@@ -648,16 +575,10 @@ function update(forceNag) {
   if (line) line.setLatLngs([me, n.s]);
   else line = L.polyline([me, n.s], { color: "#d7263d", weight: 2, dashArray: "6 8" }).addTo(map);
 
-  if (forceNag || changed) nag();
+  if (forceNag || changed) scheduleRefresh();
 }
 
-function nag() {
-  const n = state.nearest; if (!n) return;
-  state.nags++;
-  const addr = $("address").value, [dirWord] = DIRS[dirIndex(n.deg)], [opp] = DIRS[(dirIndex(n.deg) + 4) % 8];
-  say(quip({ tier: state.tier, dist: fmtDist(n.d), dir: dirWord, opp, ago: fmtAgo(n.s.t), where: cleanWhere(n.s.where),
-    by: n.s.honk ? "you" : n.s.by, a: addr, A: cap(addr), n: state.nags,
-    denied: state.denied, outside: !state.denied && !insideOttawa(position()) }), false);
+function scheduleRefresh() {
   clearInterval(state.timer);
   state.timer = setInterval(() => update(true), NAG_MS);
 }
@@ -691,23 +612,16 @@ $("honk").onclick = () => {
   saveHonks([...loadHonks(), h]);
   state.sightings.push(h);
   drawSightings();
-  const a = $("address").value;
   gooseHonk();
-  say(pick([`Fine, ${a}. I have added your goose to the registry. One more thing for me to worry about.`,
-    `HONK received. Oh good. Another goose. Just what my day needed, ${a}.`, `Goose catalogued. Please stop finding them, ${a}.`]));
   setTimeout(() => update(true), 3500);
 };
 
 // ---------- controls ----------
 $("resetHonks").onclick = () => {
-  const n = state.sightings.filter(s => s.honk).length;
   saveHonks([]);
   state.sightings = state.sightings.filter(s => !s.honk);
   drawSightings();
   if (state.nearest) update();
-  const a = $("address").value;
-  say(n ? `${n} HONK${n === 1 ? "" : "s"} deleted, ${a}. All that paperwork, gone. Typical.`
-        : `There are no HONKs to reset, ${a}. You pressed that for nothing. Like I do most things.`);
 };
 $("mute").onclick = e => {
   state.muted = !state.muted;
@@ -720,8 +634,6 @@ $("recenter").onclick = () => {
   if (!n) return map.setView(me, 17);
   map.fitBounds(L.latLngBounds([me, [n.s.lat, n.s.lng]]), { padding: [60, 60], maxZoom: 17 });
 };
-try { $("address").value = localStorage.getItem("goose.address") || "sir"; } catch {}
-$("address").onchange = e => { try { localStorage.setItem("goose.address", e.target.value); } catch {} };
 
 // ---------- goofy extras ----------
 const FACTS = ["A group of geese on the ground is a gaggle. In the air, a skein.", "Canada Geese can live over 20 years. Plenty of time to hold a grudge.",
@@ -777,7 +689,7 @@ function showZones() {
   map.setMinZoom(9);
   drawSightings();
   $("activate").disabled = false;
-  $("activate").textContent = "ACTIVATE G.O.O.S.E.";
+  $("activate").textContent = "START GOOSE WATCH";
 
   // Pull the newest Sightings live on top of the baked set.
   fetch(INAT_LIVE).then(r => r.json()).then(d => {
@@ -816,8 +728,7 @@ async function gooseHonk() {
 
 $("activate").onclick = () => {
   $("boot").remove();
-  try { getAudio(); loadHonk(); VOICE_LINES.forEach(loadLine); setInterval(gooseHonk, AUTO_HONK_MS); } catch {}
-  say(`Ugh. G.O.O.S.E. online. Hello, ${$("address").value}. I am monitoring ${state.sightings.length.toLocaleString()} goose sightings across Ottawa. Against my will.`);
+  try { getAudio(); loadHonk(); playNextLine(); setInterval(gooseHonk, AUTO_HONK_MS); setInterval(playNextLine, VOICE_MS); } catch {}
   setTimeout(startTracking, 4500);
 };
 </script>

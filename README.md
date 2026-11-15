@@ -1,11 +1,12 @@
 # Where Da Goose At — Ottawa Edition
 
-A heatmap of every recorded Canada Goose sighting in the City of Ottawa, narrated by G.O.O.S.E. (Geospatial Ornithological Observation & Surveillance Engine), a dry butler-AI that tells you where the nearest goose is. Every ten seconds. Whether you like it or not.
+A heatmap of every recorded Canada Goose sighting in the City of Ottawa, with a live readout of the nearest goose and our own recorded voice lines on a loop.
 
 - Heatmap of ~6,500 iNaturalist sightings across Ottawa, plus live refresh of the newest ones
-- Spoken + subtitled nags with distance and compass direction, escalating as you get closer
+- Nearest-goose distance and compass direction, colour-coded as you get closer
+- Three recorded voice lines, played in turn every 20 seconds with subtitles
 - HONK button to report your own goose (stored locally on your device)
-- Ottawa only: map bounded to the city; leave and G.O.O.S.E. will comment
+- Ottawa only: map bounded to the city
 
 **Live:** https://derroccoli.github.io/goose-tracker-ottawa/
 
