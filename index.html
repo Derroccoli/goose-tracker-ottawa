@@ -8,17 +8,17 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #070b10;
-    --bg-grid: rgba(90, 216, 255, 0.045);
-    --panel: #0b141d;
-    --line: rgba(120, 220, 255, 0.22);
-    --ink: #d8f3ff;
-    --dim: #7fa6b8;
-    --accent: #5ad8ff;
-    --far: #5ad8ff;
-    --mid: #ffd166;
-    --near: #ff9f43;
-    --danger: #ff4d5e;
+    --bg: #ffffff;
+    --bg-grid: rgba(20, 24, 28, 0.04);
+    --panel: #ffffff;
+    --line: rgba(20, 24, 28, 0.14);
+    --ink: #14181c;
+    --dim: #5f6872;
+    --accent: #14181c;
+    --far: #2e7d4f;
+    --mid: #b98200;
+    --near: #dd6b00;
+    --danger: #d7263d;
     --tier: var(--far);
   }
   * { box-sizing: border-box; }
@@ -54,14 +54,14 @@
   #map { height: clamp(320px, 58vh, 620px); border-radius: 2px; background: var(--bg); }
   .legend { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--dim); padding: 10px 4px 0; flex-wrap: wrap; }
   .ramp { width: 140px; height: 8px; border-radius: 4px;
-    background: linear-gradient(90deg, #0b3a53, #1f8fb8, #5ad8ff, #ffd166, #ff4d5e); }
+    background: linear-gradient(90deg, #ffe08a, #ffb347, #ff7a3d, #d7263d); }
   .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ffd166; margin-right: 4px; }
   .dot.honk { background: #ff4d5e; }
 
   .leaflet-heatmap-layer { opacity: .7; }
   .leaflet-container { background: var(--bg); font-family: inherit; }
   .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
-  .leaflet-control-attribution { background: rgba(7,11,16,.75) !important; color: var(--dim); font-size: 10px; }
+  .leaflet-control-attribution { background: rgba(255,255,255,.85) !important; color: var(--dim); font-size: 10px; }
   .leaflet-control-attribution a { color: var(--accent); }
   .leaflet-bar a { background: var(--panel); color: var(--ink); border-color: var(--line); }
 
@@ -86,18 +86,24 @@
   footer a { color: var(--accent); }
 
   #boot { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px;
-    background: radial-gradient(circle at 50% 40%, rgba(90,216,255,.12), var(--bg) 60%); }
+    background: var(--bg); }
   #boot .card { max-width: 420px; text-align: center; }
   #boot h1 { letter-spacing: .3em; color: var(--accent); margin: 0 0 4px; font-size: 32px; }
   #boot p { color: var(--dim); font-size: 13px; line-height: 1.6; }
   #boot button { font: inherit; font-weight: 700; font-size: 16px; letter-spacing: .1em; padding: 16px 28px;
-    margin-top: 12px; border-radius: 12px; border: 1px solid var(--accent); background: rgba(90,216,255,.1);
-    color: var(--accent); cursor: pointer; }
+    margin-top: 12px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent);
+    color: var(--bg); cursor: pointer; }
   #boot button:disabled { opacity: .5; cursor: wait; }
 
-  .goose-pin { font-size: 30px; filter: drop-shadow(0 0 8px var(--tier)); animation: pulse 1.2s ease-in-out infinite; }
+  .goose-pin { font-size: 34px; line-height: 1; filter: drop-shadow(0 0 6px var(--tier)); animation: pulse 1.2s ease-in-out infinite; }
+  .goose-dot { font-size: 18px; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); cursor: pointer; }
+  .goose-dot.honk { filter: drop-shadow(0 0 4px var(--danger)); }
+  .toggle { font: inherit; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; cursor: pointer;
+    color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  .toggle[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .legend.no-heat .heat-key { display: none; }
   .me-pin { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 3px solid #fff;
-    box-shadow: 0 0 0 6px rgba(90,216,255,.25); }
+    box-shadow: 0 0 0 6px rgba(20,24,28,.15); }
   @keyframes pulse { 50% { transform: scale(1.25); } }
   @keyframes blink { 50% { opacity: 0; } }
   body.danger .console, body.danger .frame { animation: alarm .6s steps(2) infinite; }
@@ -128,10 +134,10 @@
   </header>
 
   <section class="frame" aria-label="Goose heatmap">
-    <div class="strip"><span>Sector: <b>City of Ottawa</b></span><span id="stats">loading sightings…</span></div>
+    <div class="strip"><span>Sector: <b>City of Ottawa</b> <button id="heatToggle" class="toggle" aria-pressed="true">Heatmap on</button></span><span id="stats">loading sightings…</span></div>
     <div id="map"></div>
-    <div class="legend"><span>fewer geese</span><span class="ramp"></span><span>more geese</span>
-      <span><span class="dot"></span>last 30 days</span><span><span class="dot honk"></span>your HONKs</span></div>
+    <div class="legend" id="legend"><span class="heat-key">fewer geese</span><span class="ramp heat-key"></span><span class="heat-key">more geese</span>
+      <span>🪿 last 30 days</span><span>📣 your HONKs</span></div>
   </section>
 
   <section class="console" aria-live="polite">
@@ -324,24 +330,38 @@ function say(text) {
 
 // ---------- map ----------
 const map = L.map("map", { zoomControl: true, attributionControl: true }).setView([45.35, -75.75], 10);
-L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
   maxZoom: 16,
   attribution: 'Basemap &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors · Sightings: <a href="https://www.inaturalist.org">iNaturalist contributors</a>',
 }).addTo(map);
 let heat, recentLayer = L.layerGroup().addTo(map), meMarker, gooseMarker, line;
+const GOOSE_ICON = L.divIcon({ className: "", html: '<div class="goose-dot">🪿</div>', iconSize: [18, 18], iconAnchor: [9, 9] });
+const HONK_ICON = L.divIcon({ className: "", html: '<div class="goose-dot honk">📣</div>', iconSize: [18, 18], iconAnchor: [9, 9] });
+try { state.heatOn = localStorage.getItem("goose.heat") !== "off"; } catch { state.heatOn = true; }
+function setHeat(on) {
+  state.heatOn = on;
+  const b = $("heatToggle");
+  b.setAttribute("aria-pressed", on); b.textContent = on ? "Heatmap on" : "Heatmap off";
+  $("legend").classList.toggle("no-heat", !on);
+  if (heat) on ? heat.addTo(map) : map.removeLayer(heat);
+  try { localStorage.setItem("goose.heat", on ? "on" : "off"); } catch {}
+}
+$("heatToggle").onclick = () => setHeat(!state.heatOn);
+setHeat(state.heatOn);
 
 function drawSightings() {
   const pts = state.sightings.map(s => [s.lat, s.lng, s.honk ? 1 : 0.25]);
   if (heat) map.removeLayer(heat);
   heat = L.heatLayer(pts, { radius: 14, blur: 18, maxZoom: 11, max: 3, minOpacity: 0.05,
-    gradient: { 0.2: "#0b3a53", 0.4: "#1f8fb8", 0.6: "#5ad8ff", 0.8: "#ffd166", 1: "#ff4d5e" } }).addTo(map);
+    gradient: { 0.25: "#ffe08a", 0.5: "#ffb347", 0.75: "#ff7a3d", 1: "#d7263d" } });
+  if (state.heatOn) heat.addTo(map);
   recentLayer.clearLayers();
   const cutoff = Date.now() - 30 * 864e5;
   const recent = state.sightings.filter(s => s.t && new Date(s.t) >= cutoff).length;
   $("stats").innerHTML = `<b>${state.sightings.length.toLocaleString()}</b> sightings · <b>${recent}</b> in last 30 days · <span class="live">live</span>`;
   for (const s of state.sightings) {
     if (!s.t || new Date(s.t) < cutoff) continue;
-    L.circleMarker([s.lat, s.lng], { radius: 5, color: s.honk ? "#ff4d5e" : "#ffd166", weight: 1, fillOpacity: 0.7 })
+    L.marker([s.lat, s.lng], { icon: s.honk ? HONK_ICON : GOOSE_ICON })
       .bindPopup(`🪿 ${s.honk ? "HONKed by you" : "Seen by " + s.by}<br>${fmtAgo(s.t)}<br><small>${cleanWhere(s.where)}</small>`)
       .addTo(recentLayer);
   }
@@ -375,9 +395,9 @@ function update(forceNag) {
   if (meMarker) meMarker.setLatLng(me);
   else meMarker = L.marker(me, { icon: L.divIcon({ className: "", html: '<div class="me-pin"></div>', iconSize: [16, 16] }) }).addTo(map);
   if (gooseMarker) gooseMarker.setLatLng(n.s);
-  else gooseMarker = L.marker(n.s, { icon: L.divIcon({ className: "", html: '<div class="goose-pin">🪿</div>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
+  else gooseMarker = L.marker(n.s, { icon: L.divIcon({ className: "", html: '<div class="goose-pin">🪿</div>', iconSize: [34, 34], iconAnchor: [17, 17] }), zIndexOffset: 1000 }).addTo(map);
   if (line) line.setLatLngs([me, n.s]);
-  else line = L.polyline([me, n.s], { color: "#ff4d5e", weight: 2, dashArray: "6 8" }).addTo(map);
+  else line = L.polyline([me, n.s], { color: "#d7263d", weight: 2, dashArray: "6 8" }).addTo(map);
 
   if (forceNag || changed) nag();
 }
@@ -441,7 +461,7 @@ $("address").onchange = e => { try { localStorage.setItem("goose.address", e.tar
   const [geese, boundary] = await Promise.all([fetch("data/geese.json").then(r => r.json()), fetch("data/ottawa.json").then(r => r.json())]);
   state.sightings = [...geese, ...loadHonks()];
   state.boundary = boundary;
-  const outline = L.geoJSON(boundary, { style: { color: "#5ad8ff", weight: 1.5, dashArray: "4 6", fill: false } }).addTo(map);
+  const outline = L.geoJSON(boundary, { style: { color: "#14181c", weight: 1.5, dashArray: "4 6", fill: false } }).addTo(map);
   map.setMaxBounds(outline.getBounds().pad(0.4));
   map.setMinZoom(9);
   drawSightings();
