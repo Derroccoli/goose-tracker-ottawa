@@ -93,7 +93,7 @@
   @keyframes bob { 50% { transform: translateY(-10px) rotate(12deg); } }
 
   /* map frame */
-  .frame { position: relative; border: 6px dashed var(--pink); outline: 6px solid var(--yellow); background: #fff; padding: 10px; }
+  .frame { position: relative; border: 6px dashed var(--pink); background: #fff; padding: 10px; }
   .strip { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font: 18px Bangers, Impact;
     letter-spacing: .05em; padding: 0 2px 8px; }
   .strip b { color: var(--red); font-weight: 400; }
@@ -118,11 +118,11 @@
   .bubble::before { content: ""; position: absolute; left: -22px; top: 30px; border: 12px solid transparent; border-right: 18px solid #000; }
   #quip { font-size: 19px; font-weight: 700; line-height: 1.4; min-height: 2.8em; }
   .readout { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
-    background: #000; color: #fff; border: 4px solid var(--tier); padding: 10px 16px; }
+    background: linear-gradient(90deg, #000 55%, var(--tier)); color: #fff; border: 4px solid var(--tier); padding: 10px 16px; }
   .readout .label { font: 20px Bangers, Impact; letter-spacing: .06em; color: var(--yellow); }
   #dist { font: 46px/1 Bangers, Impact; color: var(--tier); letter-spacing: .03em; }
   #dir { font: 34px/1 Bangers, Impact; color: var(--tier); }
-  #meta { font-size: 13px; color: #ddd; margin-left: auto; text-align: right; }
+  #meta { font-size: 13px; color: #fff; text-shadow: 1px 1px 0 #000; margin-left: auto; text-align: right; }
   .actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
   .actions button { font: 26px Bangers, Impact; letter-spacing: .06em; padding: 12px; border: 4px solid #000; box-shadow: 6px 6px 0 #000;
     background: var(--yellow); color: #000; transition: transform .08s; }
@@ -146,11 +146,25 @@
   .goose-dot.honk { filter: drop-shadow(0 0 4px var(--danger)); }
   .me-pin { width: 18px; height: 18px; border-radius: 50%; background: var(--pink); border: 3px solid #000; box-shadow: 0 0 0 6px rgba(255,47,160,.3); }
   @keyframes pulse { 50% { transform: scale(1.3) rotate(-10deg); } }
-  body.danger .frame { animation: alarm .4s steps(2) infinite; }
-  body.danger .readout { animation: alarm-bg .4s steps(2) infinite; }
-  @keyframes alarm { 50% { border-color: var(--red); outline-color: #000; } }
-  @keyframes alarm-bg { 50% { background: var(--red); } }
+  body.danger .readout { background: linear-gradient(90deg, #000 0%, #000 35%, var(--red) 70%, var(--orange) 100%);
+    background-size: 200% 100%; animation: glide 4s ease-in-out infinite alternate; }
+  @keyframes glide { from { background-position: 0 0; } to { background-position: 100% 0; } }
 
+  .goose { display: block; width: 110px; height: auto; overflow: visible; filter: drop-shadow(4px 4px 0 rgba(0,0,0,.18)); }
+  .goose.flip { transform: scaleX(-1); }
+  .wiggle { animation: wiggle 2.8s ease-in-out infinite; transform-origin: 50% 90%; }
+  .hop { animation: hop 1.8s ease-in-out infinite; }
+  @keyframes wiggle { 0%,100% { rotate: -7deg; } 50% { rotate: 7deg; } }
+  @keyframes hop { 0%,100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+  .gutter { position: absolute; top: 150px; bottom: 60px; width: 150px; display: flex; flex-direction: column;
+    justify-content: space-around; align-items: center; pointer-events: none; }
+  .gutter.left { right: calc(50% + 672px); } .gutter.right { left: calc(50% + 672px); }
+  body { position: relative; }
+  .mast-goose { width: 120px; }
+  .butler .goose { width: 96px; margin: 0 auto; }
+  #boot .goose { width: 140px; margin: 0 auto 4px; }
+  @media (max-width: 1640px) { .gutter { display: none; } }
+  @media (max-width: 900px) { .mast-goose { display: none; } }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; }
     .track { padding-left: 0; white-space: normal; }
@@ -171,6 +185,78 @@
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="g-base">
+      <path d="M62 100 L58 114 M78 100 L82 114" stroke="#ff8a00" stroke-width="4" stroke-linecap="round"/>
+      <path d="M50 115 h14 M76 115 h14" stroke="#ff8a00" stroke-width="6" stroke-linecap="round"/>
+      <path d="M100 76 L118 66 L110 90 Z" fill="#2b2b2b" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+      <ellipse cx="72" cy="84" rx="38" ry="22" fill="#a9845c" stroke="#000" stroke-width="3"/>
+      <path d="M42 92 Q70 110 100 93" fill="none" stroke="#f3eadf" stroke-width="6" stroke-linecap="round"/>
+      <path d="M60 76 Q82 62 102 80 Q84 93 62 86 Z" fill="#7a5c3c" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M46 80 Q30 56 36 30" fill="none" stroke="#000" stroke-width="14" stroke-linecap="round"/>
+      <path d="M46 80 Q30 56 36 30" fill="none" stroke="#262626" stroke-width="8" stroke-linecap="round"/>
+      <ellipse cx="36" cy="24" rx="15" ry="12" fill="#262626" stroke="#000" stroke-width="3"/>
+      <path d="M38 31 Q47 31 49 22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+      <path d="M23 19 L3 25 L23 31 Z" fill="#ff8a00" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+    </g>
+    <g id="g-eye">
+      <circle cx="31" cy="20" r="6" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="29" cy="21" r="3" fill="#000"/>
+    </g>
+
+    <g id="g-googly">
+      <use href="#g-base"/>
+      <circle cx="28" cy="16" r="9" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="24" cy="21" r="4.5" fill="#000"/>
+      <circle cx="43" cy="14" r="7" fill="#fff" stroke="#000" stroke-width="2.5"/><circle cx="46" cy="10" r="3.5" fill="#000"/>
+    </g>
+    <g id="g-shades">
+      <use href="#g-base"/>
+      <path d="M20 14 H48 V19 Q46 27 39 26 Q34 25 33 19 H31 Q30 27 24 26 Q19 25 20 19 Z" fill="#000"/>
+      <path d="M48 15 L52 14" stroke="#000" stroke-width="3"/>
+      <path d="M23 17 l4 0 M36 17 l4 0" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <g id="g-tophat">
+      <use href="#g-base"/><use href="#g-eye"/>
+      <circle cx="31" cy="20" r="8" fill="none" stroke="#e6b800" stroke-width="2.5"/>
+      <path d="M38 24 Q44 34 42 44" fill="none" stroke="#e6b800" stroke-width="1.5"/>
+      <rect x="22" y="9" width="30" height="5" rx="2" fill="#000"/>
+      <rect x="27" y="-14" width="20" height="24" fill="#111" stroke="#000" stroke-width="2"/>
+      <rect x="27" y="3" width="20" height="4" fill="#ff1a1a"/>
+    </g>
+    <g id="g-honk">
+      <use href="#g-base"/><use href="#g-eye"/>
+      <path d="M22 28 L5 40 L24 32 Z" fill="#ff8a00" stroke="#000" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M-2 14 l-8 -6 M-4 26 h-10 M-2 38 l-8 6" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+      <text x="52" y="6" font-family="Bangers, Impact, sans-serif" font-size="24" fill="#ff1a1a" stroke="#000" stroke-width="1.2" transform="rotate(-10 52 6)">HONK!</text>
+    </g>
+    <g id="g-party">
+      <use href="#g-base"/><use href="#g-eye"/>
+      <path d="M26 13 L46 11 L33 -16 Z" fill="#ff2fa0" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M30 5 L41 4 M33 -4 L39 -5" stroke="#fff200" stroke-width="3"/>
+      <circle cx="33" cy="-17" r="4" fill="#7dff3a" stroke="#000" stroke-width="2"/>
+      <rect x="60" y="20" width="5" height="9" fill="#7dff3a" transform="rotate(30 60 20)"/>
+      <rect x="84" y="34" width="5" height="9" fill="#ff2fa0" transform="rotate(-25 84 34)"/>
+      <rect x="10" y="50" width="5" height="9" fill="#fff200" stroke="#000" stroke-width="1" transform="rotate(50 10 50)"/>
+      <circle cx="100" cy="44" r="3" fill="#8a2be2"/>
+    </g>
+    <g id="g-derp">
+      <use href="#g-base"/>
+      <circle cx="28" cy="19" r="6" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="31" cy="20" r="3" fill="#000"/>
+      <circle cx="40" cy="18" r="6" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="37" cy="19" r="3" fill="#000"/>
+      <path d="M12 28 Q8 40 15 40 Q19 38 17 29" fill="#ff7aa8" stroke="#000" stroke-width="2"/>
+      <path d="M54 6 Q50 14 54 16 Q58 14 54 6 Z" fill="#7fd3ff" stroke="#000" stroke-width="1.5"/>
+    </g>
+    <g id="g-run">
+      <use href="#g-base"/>
+      <circle cx="31" cy="20" r="7" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="27" cy="20" r="2.5" fill="#000"/>
+      <path d="M116 60 h12 M118 74 h14 M116 88 h12" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+      <path d="M56 104 l-10 8 M88 104 l10 8" stroke="#ff8a00" stroke-width="4" stroke-linecap="round"/>
+      <path d="M52 2 Q48 10 52 12 Q56 10 52 2 Z M62 10 Q58 18 62 20 Q66 18 62 10 Z" fill="#7fd3ff" stroke="#000" stroke-width="1.5"/>
+    </g>
+  </defs>
+</svg>
+<div class="gutter left"><svg class="goose wiggle" viewBox="-12 -22 145 142" aria-hidden="true" style="width:130px;"><use href="#g-googly"/></svg><svg class="goose hop flip" viewBox="-12 -22 145 142" aria-hidden="true" style="width:120px;"><use href="#g-party"/></svg><svg class="goose wiggle" viewBox="-12 -22 145 142" aria-hidden="true" style="width:130px;"><use href="#g-derp"/></svg><svg class="goose hop" viewBox="-12 -22 145 142" aria-hidden="true" style="width:120px;"><use href="#g-shades"/></svg></div>
+<div class="gutter right"><svg class="goose wiggle flip" viewBox="-12 -22 145 142" aria-hidden="true" style="width:140px;"><use href="#g-honk"/></svg><svg class="goose hop flip" viewBox="-12 -22 145 142" aria-hidden="true" style="width:130px;"><use href="#g-run"/></svg><svg class="goose wiggle flip" viewBox="-12 -22 145 142" aria-hidden="true" style="width:120px;"><use href="#g-tophat"/></svg><svg class="goose hop flip" viewBox="-12 -22 145 142" aria-hidden="true" style="width:130px;"><use href="#g-googly"/></svg></div>
 <div class="ticker" aria-hidden="true"><div class="track" id="ticker">🪿 WELCOME TO G.O.O.S.E. ★ OTTAWA'S #1 GOOSE SURVEILLANCE ENGINE ★ GEESE EVERYWHERE ★ NO REFUNDS ★ HONK RESPONSIBLY ★ 🪿</div></div>
 <div class="shell">
   <header class="masthead">
@@ -178,6 +264,7 @@
       <h1>G.O.O.S.E.</h1> <span class="new">NEW!!</span>
       <div class="sub">Geospatial Ornithological Observation &amp; Surveillance Engine — Ottawa's #1* goose tracker <i>*and only</i></div>
     </div>
+    <svg class="goose wiggle mast-goose" viewBox="-12 -22 145 142" aria-hidden="true"><use href="#g-googly"/></svg>
     <div class="burst">100% REAL GEESE!!<small>(probably)</small></div>
     <div class="controls">
       <label>ADDRESS ME AS <select id="address" aria-label="How G.O.O.S.E. addresses you">
@@ -192,9 +279,10 @@
     <aside class="side">
       <div class="sticker pink tilt-l"><h3>🪿 GOOSE FACT!!</h3><span id="fact">Loading fact…</span></div>
       <div class="sticker yellow tilt-r"><h3>NAGS DELIVERED</h3><div class="odometer" id="nagcount">000000</div></div>
-      <div class="float" aria-hidden="true">🪿</div>
+      <svg class="goose wiggle" viewBox="-12 -22 145 142" aria-hidden="true" style="width:120px;"><use href="#g-shades"/></svg>
       <div class="sticker lime flash">⚠️ SAFETY TIP: Never turn your back on a goose. Ever.</div>
       <div class="construction"><span>🚧 UNDER CONSTRUCTION 🚧</span></div>
+      <svg class="goose hop" viewBox="-12 -22 145 142" aria-hidden="true" style="width:120px;"><use href="#g-run"/></svg>
     </aside>
 
     <main>
@@ -206,7 +294,7 @@
       </section>
 
       <section class="console" aria-live="polite">
-        <div class="butler" aria-hidden="true">🎩🪿<small>G.O.O.S.E.</small></div>
+        <div class="butler" aria-hidden="true"><svg class="goose flip" viewBox="-12 -22 145 142" aria-hidden="true"><use href="#g-tophat"/></svg><small>G.O.O.S.E.</small></div>
         <div class="bubble"><div id="quip">Standing by.</div></div>
         <div class="readout">
           <span class="label">NEAREST GOOSE:</span>
@@ -222,7 +310,7 @@
       <div class="sticker orange tilt-r"><h3>🔥 TOP GOOSE ZONES</h3><ol id="zones"><li>calculating…</li></ol></div>
       <div class="sticker purple tilt-l"><h3>AS SEEN ON</h3>a pond. several ponds, actually.</div>
       <div class="sticker white">🏆 BEST GOOSE WEBSITE 2026<br><small>(self-awarded)</small></div>
-      <div class="float" aria-hidden="true" style="animation-delay:-1s">📣</div>
+      <svg class="goose hop flip" viewBox="-12 -22 145 142" aria-hidden="true" style="width:130px;"><use href="#g-honk"/></svg><svg class="goose wiggle flip" viewBox="-12 -22 145 142" aria-hidden="true" style="width:110px;"><use href="#g-derp"/></svg>
     </aside>
   </div>
 
@@ -231,6 +319,7 @@
 
 <div id="boot">
   <div class="card">
+    <svg class="goose wiggle" viewBox="-12 -22 145 142" aria-hidden="true"><use href="#g-party"/></svg>
     <h1>G.O.O.S.E.</h1>
     <p>Ottawa's goose surveillance engine!!<br>I will need your location, and your patience.<br>I will remind you of the nearest goose EVERY TEN SECONDS.</p>
     <button id="activate" disabled>Loading geese…</button>
