@@ -9,7 +9,6 @@
 <style>
   :root {
     --bg: #ffffff;
-    --bg-grid: rgba(20, 24, 28, 0.04);
     --panel: #ffffff;
     --line: rgba(20, 24, 28, 0.14);
     --ink: #14181c;
@@ -23,9 +22,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; color: var(--ink); font-family: "JetBrains Mono", ui-monospace, monospace; }
-  body { background-color: var(--bg);
-    background-image: linear-gradient(var(--bg-grid) 1px, transparent 1px), linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
-    background-size: 32px 32px; }
+  body { background: var(--bg); }
 
   .shell { max-width: 1180px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom));
     display: grid; gap: 16px; }
@@ -297,9 +294,9 @@ function quip(f) {
 
 // ---------- voice ----------
 // Ranked British male voices across Chrome, Edge/Windows and Apple devices.
-const MALE_GB = [/Google UK English Male/i, /Ryan/i, /Thomas/i, /George/i, /Daniel/i, /Arthur/i, /Oliver/i, /Jamie/i, /Malcolm/i, /\bmale\b/i];
+const MALE_GB = [/Daniel.*(Enhanced|Premium)/i, /Daniel/i, /Google UK English Male/i, /Ryan/i, /Thomas/i, /George/i, /Arthur/i, /Oliver/i, /Jamie/i, /Malcolm/i, /\bmale\b/i];
 const FEMALE = /female|kate|serena|stephanie|martha|susan|hazel|libby|sonia|maisie|mia|bella|abbi|fiona|moira|karen|samantha/i;
-const VOICE_KEY = "goose.voice";
+const VOICE_KEY = "goose.voice.v2"; // bumped so Daniel becomes the default again
 let voice = null;
 function maleRank(v) { const i = MALE_GB.findIndex(re => re.test(v.name)); return i < 0 || FEMALE.test(v.name) ? 99 : i; }
 function pickVoice() {
