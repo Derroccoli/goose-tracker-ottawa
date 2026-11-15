@@ -9,8 +9,9 @@
 <style>
   :root {
     --bg: #070b10;
-    --panel: rgba(8, 16, 24, 0.86);
-    --line: rgba(120, 220, 255, 0.28);
+    --bg-grid: rgba(90, 216, 255, 0.045);
+    --panel: #0b141d;
+    --line: rgba(120, 220, 255, 0.22);
     --ink: #d8f3ff;
     --dim: #7fa6b8;
     --accent: #5ad8ff;
@@ -21,37 +22,68 @@
     --tier: var(--far);
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
-    font-family: "JetBrains Mono", ui-monospace, monospace; overflow: hidden; }
-  #map { position: fixed; inset: 0; background: var(--bg); }
+  html, body { margin: 0; min-height: 100%; color: var(--ink); font-family: "JetBrains Mono", ui-monospace, monospace; }
+  body { background-color: var(--bg);
+    background-image: linear-gradient(var(--bg-grid) 1px, transparent 1px), linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 32px 32px; }
+
+  .shell { max-width: 1180px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom));
+    display: grid; gap: 16px; }
+
+  /* top bar */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .brand { font-weight: 700; font-size: 22px; letter-spacing: .22em; color: var(--accent); }
+  .brand small { display: block; letter-spacing: .04em; font-weight: 400; color: var(--dim); font-size: 11px; margin-top: 2px; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+  .controls label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; }
+  .controls select, .controls button { font: inherit; font-size: 12px; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; max-width: 220px; }
+  .controls button { cursor: pointer; }
+
+  /* the framed map */
+  .frame { position: relative; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); padding: 10px;
+    transition: border-color .4s, box-shadow .4s; }
+  .frame::before, .frame::after { content: ""; position: absolute; width: 22px; height: 22px; border: 2px solid var(--tier);
+    transition: border-color .4s; pointer-events: none; }
+  .frame::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+  .frame::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+  .strip { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--dim);
+    text-transform: uppercase; letter-spacing: .1em; padding: 2px 4px 10px; }
+  .strip b { color: var(--accent); font-weight: 700; }
+  .live::before { content: "●"; color: var(--danger); margin-right: 6px; animation: blink 1.4s steps(2) infinite; }
+  #map { height: clamp(320px, 58vh, 620px); border-radius: 2px; background: var(--bg); }
+  .legend { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--dim); padding: 10px 4px 0; flex-wrap: wrap; }
+  .ramp { width: 140px; height: 8px; border-radius: 4px;
+    background: linear-gradient(90deg, #0b3a53, #1f8fb8, #5ad8ff, #ffd166, #ff4d5e); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ffd166; margin-right: 4px; }
+  .dot.honk { background: #ff4d5e; }
+
   .leaflet-heatmap-layer { opacity: .7; }
   .leaflet-container { background: var(--bg); font-family: inherit; }
   .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
   .leaflet-control-attribution { background: rgba(7,11,16,.75) !important; color: var(--dim); font-size: 10px; }
   .leaflet-control-attribution a { color: var(--accent); }
+  .leaflet-bar a { background: var(--panel); color: var(--ink); border-color: var(--line); }
 
-  .hud { position: fixed; left: 12px; right: 12px; z-index: 1000; background: var(--panel);
-    border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(8px); }
-  #top { top: max(12px, env(safe-area-inset-top)); padding: 10px 14px; display: flex;
-    align-items: center; justify-content: space-between; gap: 10px; }
-  .brand { font-weight: 700; letter-spacing: .18em; color: var(--accent); }
-  .brand small { display: block; letter-spacing: .04em; font-weight: 400; color: var(--dim); font-size: 10px; }
-  #top select, #top button { font: inherit; font-size: 12px; color: var(--ink); background: transparent;
-    border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
-  .controls { display: flex; gap: 6px; }
-
-  #bottom { bottom: max(12px, env(safe-area-inset-bottom)); padding: 14px; border-color: var(--tier);
-    box-shadow: 0 0 24px -8px var(--tier); transition: border-color .4s, box-shadow .4s; }
-  .readout { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
-  #dist { font-size: 34px; font-weight: 700; color: var(--tier); line-height: 1; }
-  #dir { font-size: 22px; font-weight: 700; color: var(--tier); }
-  #meta { margin-left: auto; text-align: right; font-size: 11px; color: var(--dim); }
-  #quip { font-size: 15px; line-height: 1.45; min-height: 3em; }
+  /* console */
+  .console { display: grid; grid-template-columns: 200px 1fr 240px; gap: 20px; align-items: center;
+    border: 1px solid var(--tier); border-radius: 4px; background: var(--panel); padding: 18px 20px;
+    box-shadow: 0 0 28px -12px var(--tier); transition: border-color .4s, box-shadow .4s; }
+  .readout { display: grid; gap: 4px; }
+  .readout .label { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+  .readout .big { display: flex; align-items: baseline; gap: 10px; }
+  #dist { font-size: 38px; font-weight: 700; color: var(--tier); line-height: 1; }
+  #dir { font-size: 24px; font-weight: 700; color: var(--tier); }
+  #meta { font-size: 11px; color: var(--dim); line-height: 1.5; }
+  #quip { font-size: 16px; line-height: 1.5; min-height: 3em; border-left: 1px solid var(--line); padding-left: 20px; }
   #quip::before { content: "G.O.O.S.E. › "; color: var(--accent); }
-  .row { display: flex; gap: 8px; margin-top: 12px; }
-  .row button { flex: 1; font: inherit; font-weight: 700; font-size: 15px; padding: 12px; border-radius: 10px;
+  .actions { display: grid; gap: 8px; }
+  .actions button { font: inherit; font-weight: 700; font-size: 14px; padding: 12px; border-radius: 6px;
     border: 1px solid var(--tier); background: transparent; color: var(--tier); cursor: pointer; }
   #honk { background: var(--tier); color: var(--bg); }
+
+  footer { font-size: 11px; color: var(--dim); text-align: center; }
+  footer a { color: var(--accent); }
 
   #boot { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px;
     background: radial-gradient(circle at 50% 40%, rgba(90,216,255,.12), var(--bg) 60%); }
@@ -67,29 +99,53 @@
   .me-pin { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 3px solid #fff;
     box-shadow: 0 0 0 6px rgba(90,216,255,.25); }
   @keyframes pulse { 50% { transform: scale(1.25); } }
-  body.danger #bottom { animation: alarm .6s steps(2) infinite; }
-  @keyframes alarm { 50% { box-shadow: 0 0 40px 4px var(--danger); } }
-  @media (prefers-reduced-motion: reduce) { .goose-pin, body.danger #bottom { animation: none; } }
+  @keyframes blink { 50% { opacity: 0; } }
+  body.danger .console, body.danger .frame { animation: alarm .6s steps(2) infinite; }
+  @keyframes alarm { 50% { box-shadow: 0 0 40px 2px var(--danger); } }
+  @media (prefers-reduced-motion: reduce) { .goose-pin, .live::before, body.danger .console, body.danger .frame { animation: none; } }
+
+  @media (max-width: 860px) {
+    .shell { padding-left: 16px; padding-right: 16px; gap: 12px; }
+    .console { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
+    #quip { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 14px; }
+    .actions { grid-template-columns: 1fr 1.6fr; }
+    #map { height: 52vh; }
+    .controls select { max-width: 150px; }
+  }
 </style>
 </head>
 <body>
-<div id="map"></div>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">G.O.O.S.E.<small>Geospatial Ornithological Observation &amp; Surveillance Engine · Ottawa</small></div>
+    <div class="controls">
+      <label>Address <select id="address" aria-label="How G.O.O.S.E. addresses you">
+        <option value="sir">sir</option><option value="ma'am">ma'am</option><option value="commander">commander</option>
+      </select></label>
+      <label>Voice <select id="voice" aria-label="G.O.O.S.E. voice"></select></label>
+      <button id="mute" aria-pressed="false" aria-label="Mute">🔊</button>
+    </div>
+  </header>
 
-<header id="top" class="hud">
-  <div class="brand">G.O.O.S.E.<small>Geospatial Ornithological Observation &amp; Surveillance Engine</small></div>
-  <div class="controls">
-    <select id="address" aria-label="How G.O.O.S.E. addresses you">
-      <option value="sir">sir</option><option value="ma'am">ma'am</option><option value="commander">commander</option>
-    </select>
-    <button id="mute" aria-pressed="false">🔊</button>
-  </div>
-</header>
+  <section class="frame" aria-label="Goose heatmap">
+    <div class="strip"><span>Sector: <b>City of Ottawa</b></span><span id="stats">loading sightings…</span></div>
+    <div id="map"></div>
+    <div class="legend"><span>fewer geese</span><span class="ramp"></span><span>more geese</span>
+      <span><span class="dot"></span>last 30 days</span><span><span class="dot honk"></span>your HONKs</span></div>
+  </section>
 
-<section id="bottom" class="hud" aria-live="polite">
-  <div class="readout"><span id="dist">—</span><span id="dir"></span><span id="meta">acquiring…</span></div>
-  <div id="quip">Standing by.</div>
-  <div class="row"><button id="recenter">◎ Locate</button><button id="honk">HONK — I see a goose</button></div>
-</section>
+  <section class="console" aria-live="polite">
+    <div class="readout">
+      <span class="label">Nearest goose</span>
+      <span class="big"><span id="dist">—</span><span id="dir"></span></span>
+      <span id="meta">acquiring…</span>
+    </div>
+    <div id="quip">Standing by.</div>
+    <div class="actions"><button id="recenter">◎ Locate</button><button id="honk">HONK — I see a goose</button></div>
+  </section>
+
+  <footer>Sightings: <a href="https://www.inaturalist.org">iNaturalist contributors</a> · Basemap © Esri, © OpenStreetMap contributors · <a href="https://github.com/Derroccoli/goose-tracker-ottawa">source</a></footer>
+</div>
 
 <div id="boot">
   <div class="card">
@@ -234,26 +290,40 @@ function quip(f) {
 }
 
 // ---------- voice ----------
+// Ranked British male voices across Chrome, Edge/Windows and Apple devices.
+const MALE_GB = [/Google UK English Male/i, /Ryan/i, /Thomas/i, /George/i, /Daniel/i, /Arthur/i, /Oliver/i, /Jamie/i, /Malcolm/i, /\bmale\b/i];
+const FEMALE = /female|kate|serena|stephanie|martha|susan|hazel|libby|sonia|maisie|mia|bella|abbi|fiona|moira|karen|samantha/i;
+const VOICE_KEY = "goose.voice";
 let voice = null;
+function maleRank(v) { const i = MALE_GB.findIndex(re => re.test(v.name)); return i < 0 || FEMALE.test(v.name) ? 99 : i; }
 function pickVoice() {
-  const vs = speechSynthesis.getVoices();
-  voice = vs.find(v => /en-GB/i.test(v.lang) && /Daniel|Arthur|George|Male/i.test(v.name))
-       || vs.find(v => /en-GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null;
+  const gb = speechSynthesis.getVoices().filter(v => /en[-_]GB/i.test(v.lang))
+    .sort((x, y) => maleRank(x) - maleRank(y) || x.name.localeCompare(y.name));
+  if (!gb.length) return;
+  let saved = null; try { saved = localStorage.getItem(VOICE_KEY); } catch {}
+  voice = gb.find(v => v.name === saved) || gb[0];
+  $("voice").innerHTML = gb.map(v => `<option value="${v.name}">${v.name.replace(/^(Microsoft|Google) /, "")}${maleRank(v) < 99 ? " ♂" : ""}</option>`).join("");
+  $("voice").value = voice.name;
 }
 if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+$("voice").onchange = e => {
+  voice = speechSynthesis.getVoices().find(v => v.name === e.target.value) || voice;
+  try { localStorage.setItem(VOICE_KEY, voice.name); } catch {}
+  say(`Voice recalibrated, ${$("address").value}. The geese remain.`);
+};
 function say(text) {
   $("quip").textContent = text;
   if (state.muted || !("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  if (voice) u.voice = voice;
+  if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = "en-GB";
   u.rate = state.tier === "danger" ? 1.15 : 1;
-  u.pitch = 0.9;
+  u.pitch = 0.85;
   speechSynthesis.speak(u);
 }
 
 // ---------- map ----------
-const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([45.35, -75.75], 10);
+const map = L.map("map", { zoomControl: true, attributionControl: true }).setView([45.35, -75.75], 10);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
   maxZoom: 16,
   attribution: 'Basemap &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors · Sightings: <a href="https://www.inaturalist.org">iNaturalist contributors</a>',
@@ -267,6 +337,8 @@ function drawSightings() {
     gradient: { 0.2: "#0b3a53", 0.4: "#1f8fb8", 0.6: "#5ad8ff", 0.8: "#ffd166", 1: "#ff4d5e" } }).addTo(map);
   recentLayer.clearLayers();
   const cutoff = Date.now() - 30 * 864e5;
+  const recent = state.sightings.filter(s => s.t && new Date(s.t) >= cutoff).length;
+  $("stats").innerHTML = `<b>${state.sightings.length.toLocaleString()}</b> sightings · <b>${recent}</b> in last 30 days · <span class="live">live</span>`;
   for (const s of state.sightings) {
     if (!s.t || new Date(s.t) < cutoff) continue;
     L.circleMarker([s.lat, s.lng], { radius: 5, color: s.honk ? "#ff4d5e" : "#ffd166", weight: 1, fillOpacity: 0.7 })
