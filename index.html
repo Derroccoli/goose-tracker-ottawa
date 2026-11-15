@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>G.O.O.S.E. Ottawa</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070b10;
+    --panel: rgba(8, 16, 24, 0.86);
+    --line: rgba(120, 220, 255, 0.28);
+    --ink: #d8f3ff;
+    --dim: #7fa6b8;
+    --accent: #5ad8ff;
+    --far: #5ad8ff;
+    --mid: #ffd166;
+    --near: #ff9f43;
+    --danger: #ff4d5e;
+    --tier: var(--far);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: "JetBrains Mono", ui-monospace, monospace; overflow: hidden; }
+  #map { position: fixed; inset: 0; background: var(--bg); }
+  .leaflet-heatmap-layer { opacity: .7; }
+  .leaflet-container { background: var(--bg); font-family: inherit; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
+  .leaflet-control-attribution { background: rgba(7,11,16,.75) !important; color: var(--dim); font-size: 10px; }
+  .leaflet-control-attribution a { color: var(--accent); }
+
+  .hud { position: fixed; left: 12px; right: 12px; z-index: 1000; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(8px); }
+  #top { top: max(12px, env(safe-area-inset-top)); padding: 10px 14px; display: flex;
+    align-items: center; justify-content: space-between; gap: 10px; }
+  .brand { font-weight: 700; letter-spacing: .18em; color: var(--accent); }
+  .brand small { display: block; letter-spacing: .04em; font-weight: 400; color: var(--dim); font-size: 10px; }
+  #top select, #top button { font: inherit; font-size: 12px; color: var(--ink); background: transparent;
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+  .controls { display: flex; gap: 6px; }
+
+  #bottom { bottom: max(12px, env(safe-area-inset-bottom)); padding: 14px; border-color: var(--tier);
+    box-shadow: 0 0 24px -8px var(--tier); transition: border-color .4s, box-shadow .4s; }
+  .readout { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  #dist { font-size: 34px; font-weight: 700; color: var(--tier); line-height: 1; }
+  #dir { font-size: 22px; font-weight: 700; color: var(--tier); }
+  #meta { margin-left: auto; text-align: right; font-size: 11px; color: var(--dim); }
+  #quip { font-size: 15px; line-height: 1.45; min-height: 3em; }
+  #quip::before { content: "G.O.O.S.E. › "; color: var(--accent); }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  .row button { flex: 1; font: inherit; font-weight: 700; font-size: 15px; padding: 12px; border-radius: 10px;
+    border: 1px solid var(--tier); background: transparent; color: var(--tier); cursor: pointer; }
+  #honk { background: var(--tier); color: var(--bg); }
+
+  #boot { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px;
+    background: radial-gradient(circle at 50% 40%, rgba(90,216,255,.12), var(--bg) 60%); }
+  #boot .card { max-width: 420px; text-align: center; }
+  #boot h1 { letter-spacing: .3em; color: var(--accent); margin: 0 0 4px; font-size: 32px; }
+  #boot p { color: var(--dim); font-size: 13px; line-height: 1.6; }
+  #boot button { font: inherit; font-weight: 700; font-size: 16px; letter-spacing: .1em; padding: 16px 28px;
+    margin-top: 12px; border-radius: 12px; border: 1px solid var(--accent); background: rgba(90,216,255,.1);
+    color: var(--accent); cursor: pointer; }
+  #boot button:disabled { opacity: .5; cursor: wait; }
+
+  .goose-pin { font-size: 30px; filter: drop-shadow(0 0 8px var(--tier)); animation: pulse 1.2s ease-in-out infinite; }
+  .me-pin { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 3px solid #fff;
+    box-shadow: 0 0 0 6px rgba(90,216,255,.25); }
+  @keyframes pulse { 50% { transform: scale(1.25); } }
+  body.danger #bottom { animation: alarm .6s steps(2) infinite; }
+  @keyframes alarm { 50% { box-shadow: 0 0 40px 4px var(--danger); } }
+  @media (prefers-reduced-motion: reduce) { .goose-pin, body.danger #bottom { animation: none; } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<header id="top" class="hud">
+  <div class="brand">G.O.O.S.E.<small>Geospatial Ornithological Observation &amp; Surveillance Engine</small></div>
+  <div class="controls">
+    <select id="address" aria-label="How G.O.O.S.E. addresses you">
+      <option value="sir">sir</option><option value="ma'am">ma'am</option><option value="commander">commander</option>
+    </select>
+    <button id="mute" aria-pressed="false">🔊</button>
+  </div>
+</header>
+
+<section id="bottom" class="hud" aria-live="polite">
+  <div class="readout"><span id="dist">—</span><span id="dir"></span><span id="meta">acquiring…</span></div>
+  <div id="quip">Standing by.</div>
+  <div class="row"><button id="recenter">◎ Locate</button><button id="honk">HONK — I see a goose</button></div>
+</section>
+
+<div id="boot">
+  <div class="card">
+    <h1>G.O.O.S.E.</h1>
+    <p>Ottawa's goose surveillance engine.<br>I will need your location, and your patience.<br>I will remind you of the nearest goose every ten seconds.</p>
+    <button id="activate" disabled>Loading geese…</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<script>
+const NAG_MS = 10_000;
+const RECENT_MS = 365 * 864e5;
+const PARLIAMENT_HILL = { lat: 45.4236, lng: -75.7009 };
+const HONK_KEY = "goose.honks";
+const INAT_LIVE = "https://api.inaturalist.org/v1/observations?taxon_id=7089&place_id=27599&geo=true&per_page=200&order_by=observed_on";
+
+const $ = id => document.getElementById(id);
+const state = { sightings: [], boundary: null, me: null, denied: false, nearest: null, tier: null,
+  nags: 0, muted: false, recent: [], timer: null };
+
+// ---------- geometry ----------
+const rad = d => d * Math.PI / 180;
+function haversine(a, b) {
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(h));
+}
+function bearing(a, b) {
+  const y = Math.sin(rad(b.lng - a.lng)) * Math.cos(rad(b.lat));
+  const x = Math.cos(rad(a.lat)) * Math.sin(rad(b.lat)) - Math.sin(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.cos(rad(b.lng - a.lng));
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+const DIRS = [["north", "N"], ["north-east", "NE"], ["east", "E"], ["south-east", "SE"],
+              ["south", "S"], ["south-west", "SW"], ["west", "W"], ["north-west", "NW"]];
+const dirIndex = deg => Math.round(deg / 45) % 8;
+function insideOttawa(p) {
+  const ring = state.boundary.coordinates[0];
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > p.lat) !== (yj > p.lat) && p.lng < (xj - xi) * (p.lat - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+// ---------- formatting ----------
+const fmtDist = m => m < 1000 ? `${Math.round(m / 10) * 10} metres` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} kilometres`;
+const fmtDistShort = m => m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`;
+function fmtAgo(t) {
+  const s = (Date.now() - new Date(t)) / 1000;
+  const units = [[31536000, "year"], [2592000, "month"], [604800, "week"], [86400, "day"], [3600, "hour"], [60, "minute"]];
+  if (s < 120) return "just now";
+  if (s < 172800 && s >= 86400) return "yesterday";
+  for (const [sec, name] of units) if (s >= sec) { const n = Math.floor(s / sec); return `${n} ${name}${n > 1 ? "s" : ""} ago`; }
+  return "just now";
+}
+function cleanWhere(w) {
+  const parts = (w || "").split(",").map(s => s.trim())
+    .filter(s => s && !/^[A-Z0-9]{4,}\+[A-Z0-9]{2,}$/.test(s) && !/\b[A-Z]\d[A-Z] ?\d[A-Z]\d\b/.test(s) && !/^(ON|Ontario|Canada|CA)$/i.test(s));
+  return parts[0] || "an undisclosed location";
+}
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+// ---------- the quip engine ----------
+const tierOf = m => m > 3000 ? "far" : m > 1000 ? "mid" : m > 250 ? "near" : "danger";
+const BODIES = {
+  far: [
+    f => `The nearest goose is ${f.dist} ${f.dir}. You may relax. Slightly.`,
+    f => `I have located a goose ${f.dist} to the ${f.dir}. Last seen ${f.ago}. It has not forgotten you.`,
+    f => `Goose detected ${f.dist} ${f.dir}, near ${f.where}. Threat level: theoretical.`,
+    f => `There is a goose ${f.dist} ${f.dir} of your position. I would not go ${f.dir}, ${f.a}.`,
+    f => `${cap(f.dist)} ${f.dir}. One goose. Reported ${f.ago} by an observer called ${f.by}. Brave soul.`,
+    f => `The closest known goose sits ${f.dist} ${f.dir}. Distance is your friend, ${f.a}.`,
+    f => `A goose was logged ${f.ago}, ${f.dist} ${f.dir}. I suggest heading ${f.opp}.`,
+    f => `Scanning. Nearest goose: ${f.dist}, ${f.dir}. Your perimeter holds.`,
+    f => `Good news, ${f.a}. The nearest goose is a full ${f.dist} away, ${f.dir}. Bad news: it is still a goose.`,
+    f => `${cap(f.dist)} ${f.dir}, near ${f.where}. I have the goose under observation. It may have me under observation.`,
+  ],
+  mid: [
+    f => `A goose is ${f.dist} ${f.dir}. That is closer than I would like, ${f.a}.`,
+    f => `${cap(f.dist)} ${f.dir}, ${f.a}. Within walking distance. Its walking distance.`,
+    f => `Goose, ${f.dist} ${f.dir}, last seen ${f.ago}. I have begun drafting your will.`,
+    f => `I must insist you avoid the ${f.dir}. There is a goose ${f.dist} out.`,
+    f => `Proximity alert: one goose, ${f.dist} ${f.dir}, near ${f.where}.`,
+    f => `The goose ${f.dist} ${f.dir} of you was spotted ${f.ago}. Geese hold grudges for years.`,
+    f => `Goose ${f.dist} ${f.dir}. If you hear honking, that is not a car, ${f.a}.`,
+    f => `${cap(f.dist)} ${f.dir}. I recommend a brisk, dignified stroll ${f.opp}.`,
+  ],
+  near: [
+    f => `${f.A}, a goose is ${f.dist} ${f.dir}. Please lower your voice.`,
+    f => `Goose at ${f.dist}, ${f.dir}. Do not make eye contact.`,
+    f => `${cap(f.dist)} ${f.dir}. I can practically hear the honking, ${f.a}.`,
+    f => `Warning. Goose ${f.dist} ${f.dir}. Keep your sandwiches concealed.`,
+    f => `There is a goose ${f.dist} ${f.dir} of you. Walk calmly ${f.opp}. Then less calmly.`,
+    f => `Hostile waterfowl ${f.dist} ${f.dir}, last confirmed ${f.ago}. Shall I alert the authorities? There are no authorities.`,
+    f => `${cap(f.dist)} ${f.dir}, near ${f.where}. Its neck is long and its patience is short.`,
+    f => `Goose inbound from the ${f.dir}, ${f.dist}. I have prepared no countermeasures.`,
+  ],
+  danger: [
+    f => `${f.A}! Goose! ${cap(f.dist)} ${f.dir}!`,
+    f => `${cap(f.dist)}. ${cap(f.dir)}. It sees you, ${f.a}.`,
+    f => `Goose within ${f.dist}, ${f.dir}. This is not a drill. Retreat ${f.opp}.`,
+    f => `Brace, ${f.a}. ${cap(f.dist)} ${f.dir}. Protect your ankles.`,
+    f => `It is right there, ${f.a}. ${cap(f.dir)}. ${cap(f.dist)}. Run ${f.opp}.`,
+    f => `Contact. ${cap(f.dist)} ${f.dir}. I have nothing further to offer but my condolences.`,
+    f => `${cap(f.dist)} ${f.dir}! Make yourself large! Larger, ${f.a}!`,
+    f => `Do not run toward the ${f.dir}, ${f.a}. That is where the goose is. ${cap(f.dist)}.`,
+  ],
+};
+const OPENERS = ["", "", "", "Pardon me, {a}.", "Ahem.", "Update, {a}.", "Reminder number {n}.", "Still watching.",
+  "As I mentioned ten seconds ago.", "Forgive the intrusion.", "{A}, a word.", "Routine goose bulletin."];
+const CLOSERS = ["", "", "", "Carry on.", "I shall keep you posted.", "Every ten seconds, as agreed.", "Stay alert.",
+  "You're welcome.", "Godspeed.", "Honk responsibly.", "More in ten seconds."];
+const DENIED = ["Since you will not share your location, I am guessing from Parliament Hill.",
+  "Location access remains denied. Marvellous. Assuming Parliament Hill.",
+  "Without your coordinates, I can only assume you are on Parliament Hill, judging the geese.",
+  "Flying blind, as you insist. From Parliament Hill, then."];
+const OUTSIDE = ["You have left Ottawa, {a}. My jurisdiction ends at the city limits, but",
+  "You are outside Ottawa. Wise. Still,", "Beyond city limits. I only monitor the capital. For the record,"];
+
+function quip(f) {
+  const fill = s => s.replaceAll("{a}", f.a).replaceAll("{A}", f.A).replaceAll("{n}", f.n);
+  for (let tries = 0; tries < 30; tries++) {
+    const parts = [];
+    if (f.denied) parts.push(pick(DENIED));
+    else if (f.outside) parts.push(fill(pick(OUTSIDE)));
+    else parts.push(fill(pick(OPENERS)));
+    let body = pick(BODIES[f.tier])(f);
+    if (f.outside && !f.denied) body = body.charAt(0).toLowerCase() + body.slice(1);
+    parts.push(body, pick(CLOSERS));
+    const line = parts.filter(Boolean).join(" ");
+    if (!state.recent.includes(line)) {
+      state.recent.push(line);
+      if (state.recent.length > 300) state.recent.shift();
+      return line;
+    }
+  }
+  return `Reminder number ${f.n}: goose, ${f.dist} ${f.dir}.`;
+}
+
+// ---------- voice ----------
+let voice = null;
+function pickVoice() {
+  const vs = speechSynthesis.getVoices();
+  voice = vs.find(v => /en-GB/i.test(v.lang) && /Daniel|Arthur|George|Male/i.test(v.name))
+       || vs.find(v => /en-GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null;
+}
+if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function say(text) {
+  $("quip").textContent = text;
+  if (state.muted || !("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  if (voice) u.voice = voice;
+  u.rate = state.tier === "danger" ? 1.15 : 1;
+  u.pitch = 0.9;
+  speechSynthesis.speak(u);
+}
+
+// ---------- map ----------
+const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([45.35, -75.75], 10);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+  maxZoom: 16,
+  attribution: 'Basemap &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors · Sightings: <a href="https://www.inaturalist.org">iNaturalist contributors</a>',
+}).addTo(map);
+let heat, recentLayer = L.layerGroup().addTo(map), meMarker, gooseMarker, line;
+
+function drawSightings() {
+  const pts = state.sightings.map(s => [s.lat, s.lng, s.honk ? 1 : 0.25]);
+  if (heat) map.removeLayer(heat);
+  heat = L.heatLayer(pts, { radius: 14, blur: 18, maxZoom: 11, max: 3, minOpacity: 0.05,
+    gradient: { 0.2: "#0b3a53", 0.4: "#1f8fb8", 0.6: "#5ad8ff", 0.8: "#ffd166", 1: "#ff4d5e" } }).addTo(map);
+  recentLayer.clearLayers();
+  const cutoff = Date.now() - 30 * 864e5;
+  for (const s of state.sightings) {
+    if (!s.t || new Date(s.t) < cutoff) continue;
+    L.circleMarker([s.lat, s.lng], { radius: 5, color: s.honk ? "#ff4d5e" : "#ffd166", weight: 1, fillOpacity: 0.7 })
+      .bindPopup(`🪿 ${s.honk ? "HONKed by you" : "Seen by " + s.by}<br>${fmtAgo(s.t)}<br><small>${cleanWhere(s.where)}</small>`)
+      .addTo(recentLayer);
+  }
+}
+
+// ---------- core loop ----------
+function position() { return state.me || PARLIAMENT_HILL; }
+
+function findNearest() {
+  const me = position(), cutoff = Date.now() - RECENT_MS;
+  let pool = state.sightings.filter(s => s.t && new Date(s.t) >= cutoff);
+  if (!pool.length) pool = state.sightings;
+  let best = null, bestD = Infinity;
+  for (const s of pool) { const d = haversine(me, s); if (d < bestD) { bestD = d; best = s; } }
+  return best && { s: best, d: bestD, deg: bearing(me, best) };
+}
+
+function update(forceNag) {
+  const me = position(), n = findNearest();
+  if (!n) return;
+  state.nearest = n;
+  const tier = tierOf(n.d), changed = tier !== state.tier;
+  state.tier = tier;
+  document.documentElement.style.setProperty("--tier", `var(--${tier})`);
+  document.body.classList.toggle("danger", tier === "danger");
+  const [dirWord, dirShort] = DIRS[dirIndex(n.deg)];
+  $("dist").textContent = fmtDistShort(n.d);
+  $("dir").textContent = dirShort;
+  $("meta").innerHTML = `${n.s.honk ? "HONKed by you" : "seen " + fmtAgo(n.s.t)}<br>${state.denied ? "location: denied" : insideOttawa(me) ? "inside Ottawa" : "outside Ottawa"}`;
+
+  if (meMarker) meMarker.setLatLng(me);
+  else meMarker = L.marker(me, { icon: L.divIcon({ className: "", html: '<div class="me-pin"></div>', iconSize: [16, 16] }) }).addTo(map);
+  if (gooseMarker) gooseMarker.setLatLng(n.s);
+  else gooseMarker = L.marker(n.s, { icon: L.divIcon({ className: "", html: '<div class="goose-pin">🪿</div>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
+  if (line) line.setLatLngs([me, n.s]);
+  else line = L.polyline([me, n.s], { color: "#ff4d5e", weight: 2, dashArray: "6 8" }).addTo(map);
+
+  if (forceNag || changed) nag();
+}
+
+function nag() {
+  const n = state.nearest; if (!n) return;
+  state.nags++;
+  const addr = $("address").value, [dirWord] = DIRS[dirIndex(n.deg)], [opp] = DIRS[(dirIndex(n.deg) + 4) % 8];
+  say(quip({ tier: state.tier, dist: fmtDist(n.d), dir: dirWord, opp, ago: fmtAgo(n.s.t), where: cleanWhere(n.s.where),
+    by: n.s.honk ? "you" : n.s.by, a: addr, A: cap(addr), n: state.nags,
+    denied: state.denied, outside: !state.denied && !insideOttawa(position()) }));
+  clearInterval(state.timer);
+  state.timer = setInterval(() => update(true), NAG_MS);
+}
+
+function startTracking() {
+  if (!("geolocation" in navigator)) { state.denied = true; update(true); return; }
+  let first = true;
+  navigator.geolocation.watchPosition(p => {
+    state.me = { lat: p.coords.latitude, lng: p.coords.longitude };
+    state.denied = false;
+    if (first) map.setView(state.me, 13);
+    update(first);
+    first = false;
+  }, () => {
+    state.denied = true;
+    map.setView(PARLIAMENT_HILL, 13);
+    update(true);
+  }, { enableHighAccuracy: true, maximumAge: 5000 });
+  update(true);
+}
+
+// ---------- HONK ----------
+function loadHonks() { try { return JSON.parse(localStorage.getItem(HONK_KEY)) || []; } catch { return []; } }
+function saveHonks(h) { try { localStorage.setItem(HONK_KEY, JSON.stringify(h)); } catch {} }
+$("honk").onclick = () => {
+  const me = position();
+  const h = { id: "honk-" + Date.now(), lat: me.lat, lng: me.lng, t: new Date().toISOString(), where: "your report", by: "you", honk: true };
+  saveHonks([...loadHonks(), h]);
+  state.sightings.push(h);
+  drawSightings();
+  const a = $("address").value;
+  say(pick([`Report logged, ${a}. I have added your goose to the registry. I will now worry about it on your behalf.`,
+    `HONK received. Your bravery has been noted, ${a}.`, `Goose catalogued. Do not engage, ${a}.`]));
+  setTimeout(() => update(true), 3500);
+};
+
+// ---------- controls ----------
+$("mute").onclick = e => {
+  state.muted = !state.muted;
+  e.target.textContent = state.muted ? "🔇" : "🔊";
+  e.target.setAttribute("aria-pressed", state.muted);
+  if (state.muted) speechSynthesis.cancel();
+};
+$("recenter").onclick = () => map.setView(position(), 15);
+try { $("address").value = localStorage.getItem("goose.address") || "sir"; } catch {}
+$("address").onchange = e => { try { localStorage.setItem("goose.address", e.target.value); } catch {} };
+
+// ---------- boot ----------
+(async () => {
+  const [geese, boundary] = await Promise.all([fetch("data/geese.json").then(r => r.json()), fetch("data/ottawa.json").then(r => r.json())]);
+  state.sightings = [...geese, ...loadHonks()];
+  state.boundary = boundary;
+  const outline = L.geoJSON(boundary, { style: { color: "#5ad8ff", weight: 1.5, dashArray: "4 6", fill: false } }).addTo(map);
+  map.setMaxBounds(outline.getBounds().pad(0.4));
+  map.setMinZoom(9);
+  drawSightings();
+  $("activate").disabled = false;
+  $("activate").textContent = "ACTIVATE G.O.O.S.E.";
+
+  // Pull the newest Sightings live on top of the baked set.
+  fetch(INAT_LIVE).then(r => r.json()).then(d => {
+    const known = new Set(state.sightings.map(s => s.id));
+    const fresh = d.results.filter(r => r.geojson && !known.has(r.id)).map(r => ({
+      id: r.id, lng: r.geojson.coordinates[0], lat: r.geojson.coordinates[1],
+      t: r.time_observed_at || r.observed_on, where: r.place_guess || "", by: r.user.login }));
+    if (fresh.length) { state.sightings.push(...fresh); drawSightings(); if (state.nearest) update(); }
+  }).catch(() => {});
+})();
+
+$("activate").onclick = () => {
+  $("boot").remove();
+  say(`G.O.O.S.E. online. Good day, ${$("address").value}. Monitoring ${state.sightings.length.toLocaleString()} goose sightings across Ottawa.`);
+  setTimeout(startTracking, 4500);
+};
+</script>
+</body>
+</html>
