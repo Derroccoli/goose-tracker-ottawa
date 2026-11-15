@@ -1,6 +1,6 @@
-# G.O.O.S.E. — Ottawa Goose Tracker
+# Where Da Goose At — Ottawa Edition
 
-**Geospatial Ornithological Observation & Surveillance Engine.** A heatmap of every recorded Canada Goose sighting in the City of Ottawa, narrated by a dry butler-AI that tells you where the nearest goose is. Every ten seconds. Whether you like it or not.
+A heatmap of every recorded Canada Goose sighting in the City of Ottawa, narrated by G.O.O.S.E. (Geospatial Ornithological Observation & Surveillance Engine), a dry butler-AI that tells you where the nearest goose is. Every ten seconds. Whether you like it or not.
 
 - Heatmap of ~6,500 iNaturalist sightings across Ottawa, plus live refresh of the newest ones
 - Spoken + subtitled nags with distance and compass direction, escalating as you get closer
@@ -26,6 +26,6 @@ python3 scripts/fetch_geese.py   # rewrites data/geese.json and data/ottawa.json
 
 ## Credits
 
-Sightings: [iNaturalist](https://www.inaturalist.org) contributors (taxon 7089, place 27599). Individual observations are licensed by their observers, mostly CC BY-NC. Basemap © Esri, HERE, Garmin, © OpenStreetMap contributors.
+Sightings: [iNaturalist](https://www.inaturalist.org) contributors (taxon 7089, place 27599). Individual observations are licensed by their observers, mostly CC BY-NC. Basemap © Esri, HERE, Garmin, © OpenStreetMap contributors. Goose honk: "Low flyover by five Canadian Geese" by Extemporalist, recorded in the Okanagan, BC ([Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Low_flyover_by_five_Canadian_Geese.flac), CC0). Voice: [Piper](https://github.com/rhasspy/piper) text-to-speech (MIT) with the "Alan" ([Mycroft mimic3 apope](https://github.com/MycroftAI/mimic3-voices)) and "Northern English Male" ([OpenSLR 83](http://www.openslr.org/83/), CC BY-SA 4.0) voices from [piper-voices](https://huggingface.co/rhasspy/piper-voices).
 
 Built at a stupid hackathon.
