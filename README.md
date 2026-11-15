@@ -7,6 +7,8 @@
 - HONK button to report your own goose (stored locally on your device)
 - Ottawa only: map bounded to the city; leave and G.O.O.S.E. will comment
 
+**Live:** https://derroccoli.github.io/goose-tracker-ottawa/
+
 ## Run it
 
 ```sh
