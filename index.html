@@ -5,155 +5,234 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>G.O.O.S.E. Ottawa</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #ffffff;
     --panel: #ffffff;
-    --line: rgba(20, 24, 28, 0.14);
-    --ink: #14181c;
-    --dim: #5f6872;
-    --accent: #14181c;
-    --far: #2e7d4f;
-    --mid: #b98200;
-    --near: #dd6b00;
-    --danger: #d7263d;
+    --line: #000000;
+    --ink: #000000;
+    --dim: #333333;
+    --accent: #ff1493;
+    --pink: #ff2fa0;
+    --yellow: #fff200;
+    --lime: #7dff3a;
+    --orange: #ff8a00;
+    --purple: #8a2be2;
+    --red: #ff1a1a;
+    --far: #1f9d4a;
+    --mid: #c98a00;
+    --near: #ff6a00;
+    --danger: #ff1a1a;
     --tier: var(--far);
+    --goose-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Ctext x='8' y='34' font-size='26' opacity='.13'%3E%F0%9F%AA%BF%3C/text%3E%3Ctext x='52' y='80' font-size='18' opacity='.13' transform='rotate(-25 60 75)'%3E%F0%9F%AA%BF%3C/text%3E%3C/svg%3E");
+    --goose-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%AA%BF%3C/text%3E%3C/svg%3E") 4 4, auto;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100%; color: var(--ink); font-family: "JetBrains Mono", ui-monospace, monospace; }
-  body { background: var(--bg); }
+  html, body { margin: 0; min-height: 100%; color: var(--ink); }
+  body { background: var(--bg) var(--goose-tile); font-family: "Comic Neue", "Comic Sans MS", cursive; cursor: var(--goose-cursor); }
+  button, select { cursor: var(--goose-cursor); }
+  h1, h2, h3, .bangers { font-family: Bangers, Impact, sans-serif; letter-spacing: .04em; font-weight: 400; margin: 0; }
 
-  .shell { max-width: 1180px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom));
-    display: grid; gap: 16px; }
+  /* ticker */
+  .ticker { background: var(--red); color: var(--yellow); border-bottom: 4px solid #000; overflow: hidden; white-space: nowrap;
+    font: 20px/1.6 Bangers, Impact, sans-serif; letter-spacing: .06em; }
+  .track { display: inline-block; padding-left: 100%; animation: scroll 38s linear infinite; }
+  @keyframes scroll { to { transform: translateX(-100%); } }
 
-  /* top bar */
-  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .brand { font-weight: 700; font-size: 22px; letter-spacing: .22em; color: var(--accent); }
-  .brand small { display: block; letter-spacing: .04em; font-weight: 400; color: var(--dim); font-size: 11px; margin-top: 2px; }
-  .controls { display: flex; gap: 8px; flex-wrap: wrap; }
-  .controls label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; }
-  .controls select, .controls button { font: inherit; font-size: 12px; color: var(--ink); background: var(--panel);
-    border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; max-width: 220px; }
-  .controls button { cursor: pointer; }
+  .shell { max-width: 1320px; margin: 0 auto; padding: 14px 16px 24px; display: grid; gap: 16px; }
 
-  /* the framed map */
-  .frame { position: relative; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); padding: 10px;
-    transition: border-color .4s, box-shadow .4s; }
-  .frame::before, .frame::after { content: ""; position: absolute; width: 22px; height: 22px; border: 2px solid var(--tier);
-    transition: border-color .4s; pointer-events: none; }
-  .frame::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
-  .frame::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
-  .strip { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--dim);
-    text-transform: uppercase; letter-spacing: .1em; padding: 2px 4px 10px; }
-  .strip b { color: var(--accent); font-weight: 700; }
-  .live::before { content: "●"; color: var(--danger); margin-right: 6px; animation: blink 1.4s steps(2) infinite; }
-  #map { height: clamp(320px, 58vh, 620px); border-radius: 2px; background: var(--bg); }
-  .legend { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--dim); padding: 10px 4px 0; flex-wrap: wrap; }
-  .ramp { width: 140px; height: 8px; border-radius: 4px;
-    background: linear-gradient(90deg, #ffe08a, #ffb347, #ff7a3d, #d7263d); }
-  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ffd166; margin-right: 4px; }
-  .dot.honk { background: #ff4d5e; }
-
-  .leaflet-heatmap-layer { opacity: .7; }
-  .leaflet-container { background: var(--bg); font-family: inherit; }
-  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
-  .leaflet-control-attribution { background: rgba(255,255,255,.85) !important; color: var(--dim); font-size: 10px; }
-  .leaflet-control-attribution a { color: var(--accent); }
-  .leaflet-bar a { background: var(--panel); color: var(--ink); border-color: var(--line); }
-
-  /* console */
-  .console { display: grid; grid-template-columns: 200px 1fr 240px; gap: 20px; align-items: center;
-    border: 1px solid var(--tier); border-radius: 4px; background: var(--panel); padding: 18px 20px;
-    box-shadow: 0 0 28px -12px var(--tier); transition: border-color .4s, box-shadow .4s; }
-  .readout { display: grid; gap: 4px; }
-  .readout .label { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
-  .readout .big { display: flex; align-items: baseline; gap: 10px; }
-  #dist { font-size: 38px; font-weight: 700; color: var(--tier); line-height: 1; }
-  #dir { font-size: 24px; font-weight: 700; color: var(--tier); }
-  #meta { font-size: 11px; color: var(--dim); line-height: 1.5; }
-  #quip { font-size: 16px; line-height: 1.5; min-height: 3em; border-left: 1px solid var(--line); padding-left: 20px; }
-  #quip::before { content: "G.O.O.S.E. › "; color: var(--accent); }
-  .actions { display: grid; gap: 8px; }
-  .actions button { font: inherit; font-weight: 700; font-size: 14px; padding: 12px; border-radius: 6px;
-    border: 1px solid var(--tier); background: transparent; color: var(--tier); cursor: pointer; }
-  #honk { background: var(--tier); color: var(--bg); }
-
-  footer { font-size: 11px; color: var(--dim); text-align: center; }
-  footer a { color: var(--accent); }
-
-  #boot { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px;
-    background: var(--bg); }
-  #boot .card { max-width: 420px; text-align: center; }
-  #boot h1 { letter-spacing: .3em; color: var(--accent); margin: 0 0 4px; font-size: 32px; }
-  #boot p { color: var(--dim); font-size: 13px; line-height: 1.6; }
-  #boot button { font: inherit; font-weight: 700; font-size: 16px; letter-spacing: .1em; padding: 16px 28px;
-    margin-top: 12px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent);
-    color: var(--bg); cursor: pointer; }
-  #boot button:disabled { opacity: .5; cursor: wait; }
-
-  .goose-pin { font-size: 34px; line-height: 1; filter: drop-shadow(0 0 6px var(--tier)); animation: pulse 1.2s ease-in-out infinite; }
-  .goose-dot { font-size: 18px; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); cursor: pointer; }
-  .goose-dot.honk { filter: drop-shadow(0 0 4px var(--danger)); }
-  .toggle { font: inherit; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; cursor: pointer;
-    color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
-  .toggle[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-  .legend.no-heat .heat-key { display: none; }
-  .me-pin { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); border: 3px solid #fff;
-    box-shadow: 0 0 0 6px rgba(20,24,28,.15); }
-  @keyframes pulse { 50% { transform: scale(1.25); } }
+  /* masthead */
+  .masthead { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    background: var(--yellow); border: 5px solid #000; padding: 12px 18px; box-shadow: 8px 8px 0 var(--pink); position: relative; }
+  .logo h1 { font-size: clamp(44px, 8vw, 88px); line-height: .9;
+    background: linear-gradient(90deg, #ff1a1a, #ff8a00, #e6c200, #1f9d4a, #8a2be2, #ff2fa0, #ff1a1a); background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 2px #000;
+    animation: rainbow 3s linear infinite, wobble 2.2s ease-in-out infinite; display: inline-block; }
+  .logo .sub { font-weight: 700; font-size: 16px; }
+  .logo .sub i { font-size: 11px; }
+  .new { display: inline-block; background: var(--red); color: #fff; font: 18px Bangers, Impact; padding: 2px 8px; transform: rotate(-12deg);
+    border: 2px solid #000; animation: blink 0.9s steps(2) infinite; vertical-align: top; }
+  @keyframes rainbow { to { background-position: 200% 0; } }
+  @keyframes wobble { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) scale(1.03); } }
   @keyframes blink { 50% { opacity: 0; } }
-  body.danger .console, body.danger .frame { animation: alarm .6s steps(2) infinite; }
-  @keyframes alarm { 50% { box-shadow: 0 0 40px 2px var(--danger); } }
-  @media (prefers-reduced-motion: reduce) { .goose-pin, .live::before, body.danger .console, body.danger .frame { animation: none; } }
 
-  @media (max-width: 860px) {
-    .shell { padding-left: 16px; padding-right: 16px; gap: 12px; }
-    .console { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
-    #quip { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 14px; }
-    .actions { grid-template-columns: 1fr 1.6fr; }
-    #map { height: 52vh; }
-    .controls select { max-width: 150px; }
+  .burst { width: 130px; height: 130px; display: grid; place-items: center; text-align: center; color: #000; font: 22px/1 Bangers, Impact;
+    background: var(--lime); padding: 22px;
+    clip-path: polygon(50% 0,61% 18%,82% 7%,79% 30%,100% 33%,86% 50%,100% 67%,79% 70%,82% 93%,61% 82%,50% 100%,39% 82%,18% 93%,21% 70%,0 67%,14% 50%,0 33%,21% 30%,18% 7%,39% 18%);
+    animation: spin 12s linear infinite; flex-shrink: 0; }
+  .burst.pink { background: var(--pink); color: #fff; }
+  .burst small { font: 700 10px "Comic Neue", cursive; display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .controls label { display: flex; align-items: center; gap: 6px; font: 16px Bangers, Impact; letter-spacing: .05em; }
+  .controls select, .controls button { font: 700 13px "Comic Neue", cursive; color: #000; background: #fff;
+    border: 3px solid #000; border-radius: 0; padding: 5px 8px; box-shadow: 3px 3px 0 #000; max-width: 210px; }
+
+  /* 3-column layout */
+  .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr) 210px; gap: 18px; align-items: start; }
+  .side { display: grid; gap: 16px; justify-items: center; }
+  .sticker { width: 100%; border: 4px solid #000; padding: 10px 12px; box-shadow: 5px 5px 0 #000; font-weight: 700; font-size: 14px; line-height: 1.35; }
+  .sticker h3 { font-size: 22px; margin-bottom: 4px; }
+  .sticker.pink { background: var(--pink); color: #fff; }
+  .sticker.yellow { background: var(--yellow); }
+  .sticker.lime { background: var(--lime); }
+  .sticker.orange { background: var(--orange); }
+  .sticker.purple { background: var(--purple); color: #fff; }
+  .sticker.white { background: #fff; }
+  .sticker ol { margin: 0; padding-left: 20px; }
+  .tilt-l { transform: rotate(-3deg); } .tilt-r { transform: rotate(2.5deg); }
+  .flash { animation: flash 1s steps(2) infinite; }
+  @keyframes flash { 50% { background: var(--yellow); color: #000; } }
+  .odometer { font: 34px/1 "Courier New", monospace; font-weight: 700; background: #000; color: var(--lime); padding: 6px 8px; letter-spacing: .12em; text-align: center; }
+  .construction { width: 100%; text-align: center; font: 18px Bangers, Impact; padding: 8px; border: 4px solid #000;
+    background: repeating-linear-gradient(45deg, var(--yellow) 0 14px, #000 14px 28px); }
+  .construction span { background: var(--yellow); padding: 2px 6px; }
+  .float { font-size: 44px; animation: bob 2s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-10px) rotate(12deg); } }
+
+  /* map frame */
+  .frame { position: relative; border: 6px dashed var(--pink); outline: 6px solid var(--yellow); background: #fff; padding: 10px; }
+  .strip { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font: 18px Bangers, Impact;
+    letter-spacing: .05em; padding: 0 2px 8px; }
+  .strip b { color: var(--red); font-weight: 400; }
+  .live { color: #fff; background: var(--red); padding: 0 6px; animation: blink 1s steps(2) infinite; }
+  #map { height: clamp(320px, 56vh, 600px); border: 3px solid #000; background: #eee; }
+  .legend { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 13px; padding: 8px 2px 0; flex-wrap: wrap; }
+  .ramp { width: 140px; height: 12px; border: 2px solid #000; background: linear-gradient(90deg, #ffe08a, #ffb347, #ff7a3d, #d7263d); }
+  .legend.no-heat .heat-key { display: none; }
+  .toggle { font: 15px Bangers, Impact; letter-spacing: .05em; color: #000; background: #fff; border: 3px solid #000; padding: 3px 10px; box-shadow: 3px 3px 0 #000; }
+  .toggle[aria-pressed="true"] { background: var(--lime); }
+
+  .leaflet-heatmap-layer { opacity: .75; }
+  .leaflet-container { font-family: "Comic Neue", cursive; cursor: var(--goose-cursor); }
+  .leaflet-popup-content-wrapper { border: 3px solid #000; border-radius: 0; box-shadow: 4px 4px 0 var(--pink); font-weight: 700; }
+  .leaflet-control-attribution { font-size: 10px; }
+
+  /* console: G.O.O.S.E. speech bubble */
+  .console { display: grid; grid-template-columns: auto 1fr; gap: 14px 18px; margin-top: 18px; align-items: center; }
+  .butler { font-size: 70px; line-height: 1; text-align: center; animation: bob 1.6s ease-in-out infinite; }
+  .butler small { display: block; font: 16px Bangers, Impact; letter-spacing: .05em; }
+  .bubble { position: relative; background: #fff; border: 4px solid #000; border-radius: 24px; padding: 14px 18px; box-shadow: 6px 6px 0 var(--tier); }
+  .bubble::before { content: ""; position: absolute; left: -22px; top: 30px; border: 12px solid transparent; border-right: 18px solid #000; }
+  #quip { font-size: 19px; font-weight: 700; line-height: 1.4; min-height: 2.8em; }
+  .readout { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+    background: #000; color: #fff; border: 4px solid var(--tier); padding: 10px 16px; }
+  .readout .label { font: 20px Bangers, Impact; letter-spacing: .06em; color: var(--yellow); }
+  #dist { font: 46px/1 Bangers, Impact; color: var(--tier); letter-spacing: .03em; }
+  #dir { font: 34px/1 Bangers, Impact; color: var(--tier); }
+  #meta { font-size: 13px; color: #ddd; margin-left: auto; text-align: right; }
+  .actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+  .actions button { font: 26px Bangers, Impact; letter-spacing: .06em; padding: 12px; border: 4px solid #000; box-shadow: 6px 6px 0 #000;
+    background: var(--yellow); color: #000; transition: transform .08s; }
+  .actions button:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 #000; }
+  #honk { background: var(--red); color: #fff; animation: shake 2.5s ease-in-out infinite; }
+  @keyframes shake { 0%,88%,100% { transform: rotate(0); } 90% { transform: rotate(-3deg); } 94% { transform: rotate(3deg); } 97% { transform: rotate(-2deg); } }
+
+  footer { text-align: center; font-weight: 700; font-size: 13px; background: var(--yellow); border: 4px solid #000; padding: 8px; }
+  footer a { color: var(--purple); }
+
+  #boot { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px; background: var(--yellow) var(--goose-tile); }
+  #boot .card { max-width: 460px; text-align: center; background: #fff; border: 6px solid #000; box-shadow: 10px 10px 0 var(--pink); padding: 24px; }
+  #boot h1 { font-size: 64px; color: var(--red); -webkit-text-stroke: 2px #000; animation: wobble 2s ease-in-out infinite; }
+  #boot p { font-size: 16px; font-weight: 700; line-height: 1.5; }
+  #boot button { font: 30px Bangers, Impact; letter-spacing: .06em; padding: 14px 28px; margin-top: 8px; border: 4px solid #000;
+    background: var(--lime); color: #000; box-shadow: 6px 6px 0 #000; animation: shake 2s ease-in-out infinite; }
+  #boot button:disabled { opacity: .5; cursor: wait; animation: none; }
+
+  .goose-pin { font-size: 40px; line-height: 1; filter: drop-shadow(0 0 6px var(--tier)); animation: pulse .9s ease-in-out infinite; }
+  .goose-dot { font-size: 20px; line-height: 1; filter: drop-shadow(1px 1px 0 #000); }
+  .goose-dot.honk { filter: drop-shadow(0 0 4px var(--danger)); }
+  .me-pin { width: 18px; height: 18px; border-radius: 50%; background: var(--pink); border: 3px solid #000; box-shadow: 0 0 0 6px rgba(255,47,160,.3); }
+  @keyframes pulse { 50% { transform: scale(1.3) rotate(-10deg); } }
+  body.danger .frame { animation: alarm .4s steps(2) infinite; }
+  body.danger .readout { animation: alarm-bg .4s steps(2) infinite; }
+  @keyframes alarm { 50% { border-color: var(--red); outline-color: #000; } }
+  @keyframes alarm-bg { 50% { background: var(--red); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; }
+    .track { padding-left: 0; white-space: normal; }
+  }
+  @media (max-width: 1050px) {
+    .layout { grid-template-columns: 1fr; }
+    .side { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: start; }
+    .side .burst, .side .float { justify-self: center; }
+    main { order: -1; }
+  }
+  @media (max-width: 600px) {
+    .shell { padding: 10px 16px 20px; }
+    .masthead .burst { width: 96px; height: 96px; font-size: 16px; padding: 16px; }
+    .butler { font-size: 48px; }
+    #quip { font-size: 16px; }
+    .actions { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
+<div class="ticker" aria-hidden="true"><div class="track" id="ticker">🪿 WELCOME TO G.O.O.S.E. ★ OTTAWA'S #1 GOOSE SURVEILLANCE ENGINE ★ GEESE EVERYWHERE ★ NO REFUNDS ★ HONK RESPONSIBLY ★ 🪿</div></div>
 <div class="shell">
-  <header class="topbar">
-    <div class="brand">G.O.O.S.E.<small>Geospatial Ornithological Observation &amp; Surveillance Engine · Ottawa</small></div>
+  <header class="masthead">
+    <div class="logo">
+      <h1>G.O.O.S.E.</h1> <span class="new">NEW!!</span>
+      <div class="sub">Geospatial Ornithological Observation &amp; Surveillance Engine — Ottawa's #1* goose tracker <i>*and only</i></div>
+    </div>
+    <div class="burst">100% REAL GEESE!!<small>(probably)</small></div>
     <div class="controls">
-      <label>Address <select id="address" aria-label="How G.O.O.S.E. addresses you">
+      <label>ADDRESS ME AS <select id="address" aria-label="How G.O.O.S.E. addresses you">
         <option value="sir">sir</option><option value="ma'am">ma'am</option><option value="commander">commander</option>
       </select></label>
-      <label>Voice <select id="voice" aria-label="G.O.O.S.E. voice"></select></label>
+      <label>VOICE <select id="voice" aria-label="G.O.O.S.E. voice"></select></label>
       <button id="mute" aria-pressed="false" aria-label="Mute">🔊</button>
     </div>
   </header>
 
-  <section class="frame" aria-label="Goose heatmap">
-    <div class="strip"><span>Sector: <b>City of Ottawa</b> <button id="heatToggle" class="toggle" aria-pressed="true">Heatmap on</button></span><span id="stats">loading sightings…</span></div>
-    <div id="map"></div>
-    <div class="legend" id="legend"><span class="heat-key">fewer geese</span><span class="ramp heat-key"></span><span class="heat-key">more geese</span>
-      <span>🪿 last 30 days</span><span>📣 your HONKs</span></div>
-  </section>
+  <div class="layout">
+    <aside class="side">
+      <div class="sticker pink tilt-l"><h3>🪿 GOOSE FACT!!</h3><span id="fact">Loading fact…</span></div>
+      <div class="sticker yellow tilt-r"><h3>NAGS DELIVERED</h3><div class="odometer" id="nagcount">000000</div></div>
+      <div class="float" aria-hidden="true">🪿</div>
+      <div class="sticker lime flash">⚠️ SAFETY TIP: Never turn your back on a goose. Ever.</div>
+      <div class="construction"><span>🚧 UNDER CONSTRUCTION 🚧</span></div>
+    </aside>
 
-  <section class="console" aria-live="polite">
-    <div class="readout">
-      <span class="label">Nearest goose</span>
-      <span class="big"><span id="dist">—</span><span id="dir"></span></span>
-      <span id="meta">acquiring…</span>
-    </div>
-    <div id="quip">Standing by.</div>
-    <div class="actions"><button id="recenter">◎ Locate</button><button id="honk">HONK — I see a goose</button></div>
-  </section>
+    <main>
+      <section class="frame" aria-label="Goose heatmap">
+        <div class="strip"><span>SECTOR: <b>CITY OF OTTAWA</b> <button id="heatToggle" class="toggle" aria-pressed="true">Heatmap on</button></span><span id="stats">loading sightings…</span></div>
+        <div id="map"></div>
+        <div class="legend" id="legend"><span class="heat-key">fewer geese</span><span class="ramp heat-key"></span><span class="heat-key">MORE GEESE!!</span>
+          <span>🪿 last 30 days</span><span>📣 your HONKs</span></div>
+      </section>
 
-  <footer>Sightings: <a href="https://www.inaturalist.org">iNaturalist contributors</a> · Basemap © Esri, © OpenStreetMap contributors · <a href="https://github.com/Derroccoli/goose-tracker-ottawa">source</a></footer>
+      <section class="console" aria-live="polite">
+        <div class="butler" aria-hidden="true">🎩🪿<small>G.O.O.S.E.</small></div>
+        <div class="bubble"><div id="quip">Standing by.</div></div>
+        <div class="readout">
+          <span class="label">NEAREST GOOSE:</span>
+          <span id="dist">—</span><span id="dir"></span>
+          <span id="meta">acquiring…</span>
+        </div>
+        <div class="actions"><button id="recenter">◎ LOCATE ME</button><button id="honk">📣 HONK!! I SEE A GOOSE</button></div>
+      </section>
+    </main>
+
+    <aside class="side">
+      <div class="burst pink">FREE!!!<small>*geese not included</small></div>
+      <div class="sticker orange tilt-r"><h3>🔥 TOP GOOSE ZONES</h3><ol id="zones"><li>calculating…</li></ol></div>
+      <div class="sticker purple tilt-l"><h3>AS SEEN ON</h3>a pond. several ponds, actually.</div>
+      <div class="sticker white">🏆 BEST GOOSE WEBSITE 2026<br><small>(self-awarded)</small></div>
+      <div class="float" aria-hidden="true" style="animation-delay:-1s">📣</div>
+    </aside>
+  </div>
+
+  <footer>Sightings: <a href="https://www.inaturalist.org">iNaturalist contributors</a> · Basemap © Esri, © OpenStreetMap contributors · <a href="https://github.com/Derroccoli/goose-tracker-ottawa">source</a> · Best viewed with your eyes 👀</footer>
 </div>
 
 <div id="boot">
   <div class="card">
     <h1>G.O.O.S.E.</h1>
-    <p>Ottawa's goose surveillance engine.<br>I will need your location, and your patience.<br>I will remind you of the nearest goose every ten seconds.</p>
+    <p>Ottawa's goose surveillance engine!!<br>I will need your location, and your patience.<br>I will remind you of the nearest goose EVERY TEN SECONDS.</p>
     <button id="activate" disabled>Loading geese…</button>
   </div>
 </div>
@@ -314,8 +393,13 @@ $("voice").onchange = e => {
   try { localStorage.setItem(VOICE_KEY, voice.name); } catch {}
   say(`Voice recalibrated, ${$("address").value}. The geese remain.`);
 };
+const tickerLines = [];
 function say(text) {
   $("quip").textContent = text;
+  tickerLines.unshift(text.toUpperCase());
+  tickerLines.length = Math.min(tickerLines.length, 6);
+  $("ticker").textContent = "🪿 " + tickerLines.join(" ★ ") + " ★ HONK RESPONSIBLY 🪿";
+  $("nagcount").textContent = String(state.nags).padStart(6, "0");
   if (state.muted || !("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
@@ -453,6 +537,27 @@ $("recenter").onclick = () => map.setView(position(), 15);
 try { $("address").value = localStorage.getItem("goose.address") || "sir"; } catch {}
 $("address").onchange = e => { try { localStorage.setItem("goose.address", e.target.value); } catch {} };
 
+// ---------- goofy extras ----------
+const FACTS = ["A group of geese on the ground is a gaggle. In the air, a skein.", "Canada Geese can live over 20 years. Plenty of time to hold a grudge.",
+  "Geese hiss when they feel threatened. They often feel threatened.", "Canada Geese usually mate for life.",
+  "Geese fly in a V so the ones behind save energy. Teamwork. Menacing teamwork.", "Goslings can swim within a day of hatching.",
+  "A goose's honk can carry for over a kilometre. You have been warned."];
+let factI = Math.floor(Math.random() * FACTS.length);
+function nextFact() { $("fact").textContent = FACTS[factI++ % FACTS.length]; }
+nextFact(); setInterval(nextFact, 7000);
+function showZones() {
+  const counts = {};
+  const cutoff = Date.now() - RECENT_MS;
+  for (const s of state.sightings) {
+    if (!s.t || new Date(s.t) < cutoff) continue;
+    const w = cleanWhere(s.where);
+    if (/^(ottawa|an undisclosed location|your report)$/i.test(w)) continue;
+    counts[w] = (counts[w] || 0) + 1;
+  }
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  $("zones").innerHTML = top.map(([w, n]) => `<li>${w.replace(/</g, "&lt;")} (${n})</li>`).join("");
+}
+
 // ---------- boot ----------
 (async () => {
   const [geese, boundary] = await Promise.all([fetch("data/geese.json").then(r => r.json()), fetch("data/ottawa.json").then(r => r.json())]);
@@ -462,6 +567,7 @@ $("address").onchange = e => { try { localStorage.setItem("goose.address", e.tar
   map.setMaxBounds(outline.getBounds().pad(0.4));
   map.setMinZoom(9);
   drawSightings();
+  showZones();
   $("activate").disabled = false;
   $("activate").textContent = "ACTIVATE G.O.O.S.E.";
 
