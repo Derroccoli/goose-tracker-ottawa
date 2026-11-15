@@ -26,6 +26,6 @@ python3 scripts/fetch_geese.py   # rewrites data/geese.json and data/ottawa.json
 
 ## Credits
 
-Sightings: [iNaturalist](https://www.inaturalist.org) contributors (taxon 7089, place 27599). Individual observations are licensed by their observers, mostly CC BY-NC. Basemap © Esri, HERE, Garmin, © OpenStreetMap contributors. Goose honk: "Low flyover by five Canadian Geese" by Extemporalist, recorded in the Okanagan, BC ([Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Low_flyover_by_five_Canadian_Geese.flac), CC0). Voice: [Piper](https://github.com/rhasspy/piper) text-to-speech (MIT) with the "Alan" ([Mycroft mimic3 apope](https://github.com/MycroftAI/mimic3-voices)) and "Northern English Male" ([OpenSLR 83](http://www.openslr.org/83/), CC BY-SA 4.0) voices from [piper-voices](https://huggingface.co/rhasspy/piper-voices).
+Sightings: [iNaturalist](https://www.inaturalist.org) contributors (taxon 7089, place 27599). Individual observations are licensed by their observers, mostly CC BY-NC. Basemap © Esri, HERE, Garmin, © OpenStreetMap contributors. Goose honk: "Low flyover by five Canadian Geese" by Extemporalist, recorded in the Okanagan, BC ([Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Low_flyover_by_five_Canadian_Geese.flac), CC0). Voice: our own recordings.
 
 Built at a stupid hackathon.

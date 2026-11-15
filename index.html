@@ -142,7 +142,6 @@
   #boot p { font-size: 16px; font-weight: 700; line-height: 1.5; }
   #boot button { font: 30px Bangers, Impact; letter-spacing: .06em; padding: 14px 28px; margin-top: 8px; border: 4px solid #000;
     background: var(--lime); color: #000; animation: shake 2s ease-in-out infinite; }
-  #boot .voice-status { font-size: 13px; font-weight: 400; margin: 10px 0 0; }
   #boot button:disabled { opacity: .5; cursor: wait; animation: none; }
 
   /* geese have no backing shape; a stacked white+black outline keeps them readable on the map */
@@ -292,7 +291,6 @@
       <label>ADDRESS ME AS <select id="address" aria-label="How G.O.O.S.E. addresses you">
         <option value="sir">sir</option><option value="ma'am">ma'am</option><option value="commander">commander</option>
       </select></label>
-      <label>VOICE <select id="voice" aria-label="G.O.O.S.E. voice"></select></label>
       <button id="mute" aria-pressed="false" aria-label="Mute">🔊</button>
     </div>
   </header>
@@ -343,7 +341,6 @@
     <div class="bangers" style="font-size:24px">OTTAWA EDITION</div>
     <p>Ottawa's goose surveillance engine!!<br>I will need your location, and your patience.<br>I will remind you of the nearest goose EVERY TEN SECONDS.</p>
     <button id="activate" disabled>Loading geese…</button>
-    <p id="voiceStatus" class="voice-status">Downloading my voice…</p>
   </div>
 </div>
 
@@ -483,148 +480,30 @@ function quip(f) {
 }
 
 // ---------- voice ----------
-// Speech is generated in the page by Piper, a small open text-to-speech model (~63 MB per voice, cached by the browser
-// after the first visit), and played through Web Audio like the honk. The browser's own speechSynthesis engine is
-// shared browser-wide and can jam until the browser restarts; this sidesteps it. It runs in a worker so generating
-// doesn't freeze the map, and it is several times faster than real time on a laptop.
-const PIPER_VOICES = { alan: "Alan", northern: "Northern" };
-const VOICE_KEY = "goose.voice.piper";
-let voice = "alan";
-try { const saved = localStorage.getItem(VOICE_KEY); if (saved in PIPER_VOICES) voice = saved; } catch {}
-$("voice").innerHTML = Object.entries(PIPER_VOICES).map(([id, name]) => `<option value="${id}">${name} ♂</option>`).join("");
-$("voice").value = voice;
-$("voice").onchange = e => {
-  voice = e.target.value;
-  try { localStorage.setItem(VOICE_KEY, voice); } catch {}
-  say(`New voice. Same me. Same geese. Thrilled, ${$("address").value}.`);
-};
-
-// grumpy delivery: generated slow, then played back slightly fast, which raises the pitch into a flat, put-upon drawl
-const VOICE_PITCH = 1.08;
-const voiceSpeed = () => (state.tier === "danger" ? 0.95 : 0.82) / VOICE_PITCH;
-
-// Lines are handled one at a time; a line that a newer one overtook while waiting is skipped, and an interrupting
-// line (anything the user triggered) also drops one that finished generating but hasn't been played.
-const TTS_WORKER = `
-import { createPiperPhonemize } from "https://cdn.jsdelivr.net/npm/@diffusionstudio/vits-web@1.0.3/dist/piper-DeOu3H9E.js";
-import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/+esm";
-ort.env.wasm.wasmPaths = "https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.18.0/";
-const VOICES = "https://huggingface.co/diffusionstudio/piper-voices/resolve/main/en/en_GB/";
-const MODELS = { alan: "alan/medium/en_GB-alan-medium.onnx", northern: "northern_english_male/medium/en_GB-northern_english_male-medium.onnx" };
-const PHONEMIZE = "https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize";
-
-async function cachedFetch(url, onProgress) {
-  const cache = await caches.open("goose-voice");
-  const hit = await cache.match(url);
-  if (hit) return hit.arrayBuffer();
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(res.status + " " + url);
-  const total = +res.headers.get("Content-Length") || 0, reader = res.body.getReader(), parts = [];
-  for (let got = 0; ;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    parts.push(value); got += value.length;
-    if (total) onProgress?.(got / total * 100);
-  }
-  const blob = new Blob(parts);
-  await cache.put(url, new Response(blob));
-  return blob.arrayBuffer();
-}
-const sessions = {};
-const session = (voice, onProgress) => sessions[voice] ??=
-  cachedFetch(VOICES + MODELS[voice], onProgress).then(buf => ort.InferenceSession.create(buf));
-const phonemize = text => new Promise((resolve, reject) => createPiperPhonemize({
-  print: line => resolve(JSON.parse(line).phoneme_ids),
-  printErr: line => console.warn("[piper]", line),
-  locateFile: f => f.endsWith(".wasm") ? PHONEMIZE + ".wasm" : f.endsWith(".data") ? PHONEMIZE + ".data" : f,
-}).then(m => m.callMain(["-l", "en-gb-x-rp", "--input", JSON.stringify([{ text }]), "--espeak_data", "/espeak-ng-data"]), reject));
-
-let first = true, newest = 0, queue = Promise.resolve();
-onmessage = ({ data }) => {
-  if (data.load) return session(data.load, p => postMessage({ progress: p }))
-    .then(() => postMessage({ ready: true }), e => postMessage({ failed: String(e) }));
-  newest = data.id;
-  queue = queue.then(() => speak(data));
-};
-async function speak({ id, text, voice, speed }) {
-  if (id !== newest) return;
-  try {
-    const ids = await phonemize(text), model = await session(voice, p => postMessage({ progress: p }));
-    const { output } = await model.run({
-      input: new ort.Tensor("int64", BigInt64Array.from(ids, BigInt), [1, ids.length]),
-      input_lengths: new ort.Tensor("int64", BigInt64Array.of(BigInt(ids.length)), [1]),
-      scales: new ort.Tensor("float32", Float32Array.of(0.667, 1 / speed, 0.8), [3]),
-    });
-    const audio = output.data;
-    let peak = 0.01;
-    for (const x of audio) peak = Math.max(peak, Math.abs(x));
-    for (let i = 0; i < audio.length; i++) audio[i] *= 0.9 / peak;
-    postMessage({ id, audio, rate: 22050 }, [audio.buffer]);
-  } catch (e) { postMessage({ id, error: String(e) }); }
-}`;
-const tts = { worker: null, ready: false, failed: false, id: 0, cutoff: 0, playing: 0, sources: [], cursor: 0 };
-const voiceStatus = text => { if ($("voiceStatus")) $("voiceStatus").textContent = text; };
-try {
-  tts.worker = new Worker(URL.createObjectURL(new Blob([TTS_WORKER], { type: "text/javascript" })), { type: "module" });
-  tts.worker.onmessage = ({ data }) => {
-    if ("progress" in data) return voiceStatus(`Downloading my voice… ${Math.round(data.progress)}%`);
-    if (data.ready) { tts.ready = true; return voiceStatus("Voice loaded. Unfortunately."); }
-    if (data.failed) { console.warn("[G.O.O.S.E. voice] model failed to load, using browser speech:", data.failed); return voiceFailed(); }
-    if (data.error) return console.warn("[G.O.O.S.E. voice]", data.error);
-    if (data.id < tts.cutoff || state.muted) return;  // superseded by an interrupting line
-    if (data.id === tts.cutoff && tts.playing !== data.id) stopVoice();  // an interrupting line cuts off what's playing
-    tts.playing = data.id;
-    playChunk(data.audio, data.rate);
-  };
-  tts.worker.postMessage({ load: voice });
-  tts.worker.onerror = e => { console.warn("[G.O.O.S.E. voice] worker failed, using browser speech:", e.message); voiceFailed(); };
-} catch { tts.failed = true; }
-
-function voiceFailed() {
-  if (tts.failed) return;
-  tts.failed = true;
-  voiceStatus("My good voice failed to load. You get the backup one.");
-}
-// a nag that arrives mid-sentence waits its turn: lines queue back to back on the audio clock
-function playChunk(samples, rate) {
-  const { ctx } = getAudio(), buf = ctx.createBuffer(1, samples.length, rate);
-  buf.copyToChannel(samples, 0);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.playbackRate.value = VOICE_PITCH;
-  src.connect(ctx.destination);
-  const at = Math.max(ctx.currentTime + 0.05, tts.cursor);
-  src.start(at);
-  tts.cursor = at + buf.duration / VOICE_PITCH;
-  tts.sources.push(src);
-  src.onended = () => tts.sources.splice(tts.sources.indexOf(src), 1);
-}
+// Our own recorded lines, played in turn (1, 2, 3, 1, …) whenever G.O.O.S.E. speaks. The on-screen quip keeps the
+// live distance and direction. Played through Web Audio like the honk so the two mix instead of cutting each other off.
+const VOICE_LINES = ["Sounds/line-1.m4a", "Sounds/line-2.m4a", "Sounds/line-3.m4a"];
+const voice = { buffers: {}, next: 0, playing: null };
+const loadLine = url => voice.buffers[url] ??=
+  fetch(url).then(r => r.arrayBuffer()).then(b => getAudio().ctx.decodeAudioData(b)).catch(() => null);
 function stopVoice() {
-  for (const src of tts.sources) try { src.stop(); } catch {}
-  tts.sources = [];
-  tts.cursor = 0;
+  try { voice.playing?.stop(); } catch {}
+  voice.playing = null;
 }
-// backup voice: the browser's own British one
-function speakFallback(text) {
-  if (!("speechSynthesis" in window)) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.voice = speechSynthesis.getVoices().find(v => /en[-_]GB/i.test(v.lang) && /Daniel|UK English Male/i.test(v.name)) || null;
-  u.lang = "en-GB";
-  u.rate = state.tier === "danger" ? 0.95 : 0.82;
-  u.pitch = 1.15;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
-}
-// interrupt: cut off whatever is being said (user actions). Nags pass false and wait their turn instead.
-function say(text, interrupt = true) {
+// interrupt: cut off whatever is being said (user actions). Nags pass false and skip their turn if a line is still playing.
+async function say(text, interrupt = true) {
   $("quip").textContent = text;
   $("nagcount").textContent = String(state.nags).padStart(6, "0");
-  if (state.muted) return;
-  // the browser's own voice covers the first visit while the Piper voice downloads, and any browser that can't run it
-  if (tts.failed || !tts.ready) return speakFallback(text);
-  const id = ++tts.id;
-  if (interrupt) tts.cutoff = id;
-  tts.worker.postMessage({ id, text, voice, speed: voiceSpeed(), interrupt });
+  if (state.muted || (!interrupt && voice.playing)) return;
+  const url = VOICE_LINES[voice.next];
+  voice.next = (voice.next + 1) % VOICE_LINES.length;
+  const buf = await loadLine(url);
+  if (!buf || state.muted) return;
+  stopVoice();
+  const { ctx } = getAudio(), src = ctx.createBufferSource();
+  src.buffer = buf; src.connect(ctx.destination); src.start();
+  voice.playing = src;
+  src.onended = () => { if (voice.playing === src) voice.playing = null; };
 }
 
 // ---------- map ----------
@@ -834,7 +713,7 @@ $("mute").onclick = e => {
   state.muted = !state.muted;
   e.target.textContent = state.muted ? "🔇" : "🔊";
   e.target.setAttribute("aria-pressed", state.muted);
-  if (state.muted) { tts.cutoff = ++tts.id; stopVoice(); if ("speechSynthesis" in window) speechSynthesis.cancel(); }
+  if (state.muted) stopVoice();
 };
 $("recenter").onclick = () => {
   const me = position(), n = findNearest();
@@ -920,7 +799,7 @@ function getAudio() {
 }
 // goose honk: a real Canada Goose recorded in the Okanagan, BC (CC0, Wikimedia Commons "Low flyover by five Canadian Geese")
 // played through Web Audio rather than an <audio> element: browsers (Safari especially) let an <audio> element
-// interrupt or duck speechSynthesis, but a Web Audio buffer mixes with the voice so both are heard at once
+// interrupt or duck other audio, but a Web Audio buffer mixes with the voice so both are heard at once
 const HONK_URL = "Sounds/goose-honk.m4a";
 let honkBuffer;
 function loadHonk() {
@@ -937,7 +816,7 @@ async function gooseHonk() {
 
 $("activate").onclick = () => {
   $("boot").remove();
-  try { getAudio(); loadHonk(); setInterval(gooseHonk, AUTO_HONK_MS); } catch {}
+  try { getAudio(); loadHonk(); VOICE_LINES.forEach(loadLine); setInterval(gooseHonk, AUTO_HONK_MS); } catch {}
   say(`Ugh. G.O.O.S.E. online. Hello, ${$("address").value}. I am monitoring ${state.sightings.length.toLocaleString()} goose sightings across Ottawa. Against my will.`);
   setTimeout(startTracking, 4500);
 };
